@@ -1,0 +1,161 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light dark;
+  --speed-multiplier: 1;
+}
+
+html, body, #root {
+  height: 100%;
+}
+
+body {
+  @apply font-sans antialiased text-ink bg-canvas;
+  overscroll-behavior-y: contain;
+}
+
+.dark body {
+  @apply text-ink-dark bg-canvas-dark;
+}
+
+.contrast body {
+  @apply text-ink-contrast bg-canvas-contrast;
+}
+
+/* Selection */
+::selection { background: rgba(58, 147, 240, 0.35); }
+
+/* Buttons (utility composition) */
+.btn {
+  @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-medium
+         transition-all duration-150 select-none active:scale-[0.98]
+         disabled:opacity-50 disabled:cursor-not-allowed;
+}
+
+.btn-primary {
+  @apply btn bg-brand-600 text-white hover:bg-brand-700 shadow-sm shadow-brand-600/25;
+}
+
+.btn-ghost {
+  @apply btn bg-transparent text-ink hover:bg-black/5;
+}
+
+.dark .btn-ghost { @apply text-ink-dark hover:bg-white/10; }
+.contrast .btn-ghost { @apply text-ink-contrast border border-white/40 hover:bg-white/10; }
+
+.btn-soft {
+  @apply btn bg-white text-ink shadow-sm border border-black/5 hover:bg-white/90;
+}
+
+.dark .btn-soft { @apply bg-white/[0.06] text-ink-dark border-white/10 hover:bg-white/[0.10]; }
+.contrast .btn-soft { @apply bg-black text-white border-white hover:bg-white/10; }
+
+.card {
+  @apply rounded-2xl bg-white shadow-sm border border-black/5 p-4;
+}
+
+.dark .card { @apply bg-white/[0.04] border-white/10 backdrop-blur-sm; }
+.contrast .card { @apply bg-black border-white text-white; }
+
+.kbd {
+  @apply inline-flex items-center justify-center text-[11px] font-mono font-semibold
+         px-1.5 py-0.5 rounded border border-black/10 bg-white text-ink/80 shadow-sm;
+}
+
+.dark .kbd { @apply bg-white/10 border-white/15 text-ink-dark/80; }
+
+/* Picker stage gradient surface */
+.stage {
+  @apply rounded-3xl shadow-sm overflow-hidden relative;
+  background:
+    radial-gradient(ellipse 80% 60% at 50% 0%, rgba(58,147,240,0.10), transparent 60%),
+    radial-gradient(ellipse 80% 60% at 50% 100%, rgba(86,179,137,0.08), transparent 60%),
+    #ffffff;
+  border: 1px solid rgba(0,0,0,0.05);
+}
+.dark .stage {
+  background:
+    radial-gradient(ellipse 80% 60% at 50% 0%, rgba(58,147,240,0.20), transparent 60%),
+    radial-gradient(ellipse 80% 60% at 50% 100%, rgba(86,179,137,0.10), transparent 60%),
+    #0f1729;
+  border-color: rgba(255,255,255,0.08);
+}
+.contrast .stage {
+  background: #000;
+  border-color: #fff;
+}
+
+.font-size-normal .picked-name { font-size: clamp(2.4rem, 6vw, 4.5rem); }
+.font-size-large  .picked-name { font-size: clamp(3rem, 8vw, 6rem); }
+.font-size-huge   .picked-name { font-size: clamp(4rem, 11vw, 9rem); }
+
+/* Reduce motion if requested */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+  }
+}
+
+/* Hide scrollbar utility (used by chip strips) */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { scrollbar-width: none; }
+
+/* 3D card flip helpers */
+.flip-3d { perspective: 1200px; }
+.flip-inner { transform-style: preserve-3d; transition: transform 600ms cubic-bezier(.2,.8,.2,1); }
+.flip-face { backface-visibility: hidden; -webkit-backface-visibility: hidden; }
+.flip-face-back { transform: rotateY(180deg); }
+.flip-flipped { transform: rotateY(180deg); }
+
+/* ─── Contrast-mode legibility overrides ───────────────────────────────────
+   In contrast mode the document also carries `.dark` (see useAppState.ts) so
+   dark: utility classes activate. These rules then push specific elements
+   the rest of the way to pure black/white. */
+
+/* Brand gradient text becomes solid white — gradients are hard to read on
+   pure black and the gradient fill leaves the underlying glyphs too dim. */
+.contrast .bg-clip-text {
+  background: none !important;
+  background-image: none !important;
+  -webkit-background-clip: initial !important;
+  background-clip: initial !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+
+/* kbd hints — solid white tile, black text. */
+.contrast .kbd {
+  background-color: #ffffff !important;
+  color: #000000 !important;
+  border-color: #ffffff !important;
+}
+
+/* Make all card and stage surfaces pitch-black with a hard white border so
+   they're clearly distinguishable. */
+.contrast .stage,
+.contrast .card {
+  background: #000000 !important;
+  border-color: #ffffff !important;
+  color: #ffffff !important;
+}
+
+/* Form controls — give them a visible boundary on black. */
+.contrast input,
+.contrast textarea,
+.contrast select {
+  background-color: #000000 !important;
+  color: #ffffff !important;
+  border: 1px solid #ffffff !important;
+}
+
+/* Outline-style coloured links (e.g. "Reset names (N)" link) become plain
+   white in contrast mode for guaranteed legibility. */
+.contrast a,
+.contrast .text-brand-300,
+.contrast .text-brand-700 {
+  color: #ffffff !important;
+}
