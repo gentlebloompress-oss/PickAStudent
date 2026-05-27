@@ -41,14 +41,23 @@ npm run preview     # Serve the built bundle locally
 
 ## Deploying for free
 
-The output of `npm run build` is a fully static site in `dist/`. Drop it on:
+The output of `npm run build` is a fully static site in `dist/`. Any static host works; pick whichever you like.
 
+- **Render** (recommended — the included `render.yaml` blueprint configures everything).
+  1. Push to GitHub, then go to https://render.com and click **New + → Blueprint**.
+  2. Connect the repo. Render reads `render.yaml`, sets the build command, publish directory, cache headers, and SPA fallback automatically.
+  3. First build takes ~2–3 minutes. Your URL becomes `<service-name>.onrender.com` (free tier, HTTPS, auto-deploys on every push).
+  - Alternative: skip the blueprint and create a **Static Site** manually — build command `npm install && npm run build`, publish directory `dist`.
 - **Vercel** — `vercel deploy` from the project root, or import the GitHub repo. No config needed.
 - **Netlify** — drag-and-drop the `dist/` folder into the Netlify dashboard, or connect the repo (build command `npm run build`, publish directory `dist`).
 - **Cloudflare Pages** — connect the repo, build command `npm run build`, output directory `dist`.
 - **GitHub Pages** — push `dist/` to the `gh-pages` branch (or use any GitHub Action). If you host under a subpath, set `base: '/your-repo/'` in `vite.config.ts`.
 
 Once it's hosted, share a clean URL like `pickastudent.example.com` — teachers can bookmark it or install it to their home screen.
+
+### Node version
+
+The build is pinned to **Node 20+** via both `.node-version` (read by Render, fnm, nvm, and most hosts) and the `engines` field in `package.json`. If your host needs another mechanism, either should be enough.
 
 ## Add to home screen
 
