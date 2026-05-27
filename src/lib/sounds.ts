@@ -29,15 +29,6 @@ export function play(choice: SoundChoice, enabled: boolean) {
   }
 }
 
-export function playTimerEnd(enabled: boolean) {
-  // Always a soft chime so it doesn't startle.
-  if (!enabled) return;
-  try {
-    const c = audio();
-    chime(c, c.currentTime, 0.18);
-  } catch { /* ignore */ }
-}
-
 /**
  * Wheel-of-fortune ratchet — a sequence of woody clicks scheduled at
  * angularly-uniform intervals so the click rate naturally tracks the wheel's

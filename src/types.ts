@@ -11,7 +11,6 @@ export interface Klass {
   id: ClassId;
   name: string;
   students: Student[];
-  defaultTimerSeconds?: number;
   createdAt: number;
 }
 
@@ -34,8 +33,6 @@ export interface Settings {
   theme: Theme;
   fontSize: FontSize;
   groupSize: number;
-  timerEnabled: boolean;
-  timerSeconds: number;
   confetti: boolean;
 }
 

@@ -170,7 +170,6 @@ export default function App() {
         onRenameStudent={actions.renameStudent}
         onToggleExclude={actions.toggleExclude}
         onSetAllIncluded={actions.setAllIncluded}
-        onSetClassDefaultTimer={actions.setClassDefaultTimer}
         onImport={handleImport}
         fullState={state}
       />

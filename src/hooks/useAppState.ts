@@ -15,8 +15,6 @@ const DEFAULT_SETTINGS: Settings = {
   theme: 'light',
   fontSize: 'large',
   groupSize: 1,
-  timerEnabled: false,
-  timerSeconds: 30,
   confetti: true,
 };
 
@@ -40,7 +38,6 @@ type Action =
   | { type: 'add-class'; klass: Klass }
   | { type: 'rename-class'; classId: ClassId; name: string }
   | { type: 'delete-class'; classId: ClassId }
-  | { type: 'set-class-default-timer'; classId: ClassId; seconds: number }
   | { type: 'add-students'; classId: ClassId; names: string[] }
   | { type: 'remove-student'; classId: ClassId; studentId: StudentId }
   | { type: 'rename-student'; classId: ClassId; studentId: StudentId; name: string }
@@ -78,8 +75,6 @@ function reducer(state: PersistedState, action: Action): PersistedState {
         : state.currentClassId;
       return { ...state, classes, classStates: rest, currentClassId };
     }
-    case 'set-class-default-timer':
-      return { ...state, classes: state.classes.map((c) => c.id === action.classId ? { ...c, defaultTimerSeconds: action.seconds } : c) };
     case 'add-students': {
       return {
         ...state,
@@ -168,12 +163,11 @@ export function useAppState() {
     setMode: (mode: PickerMode) => dispatch({ type: 'set-mode', mode }),
     setCurrent: (classId: ClassId | null) => dispatch({ type: 'set-current', classId }),
     addClass: (name: string) => {
-      const klass: Klass = { id: uid('cls_'), name, students: [], createdAt: Date.now(), defaultTimerSeconds: 30 };
+      const klass: Klass = { id: uid('cls_'), name, students: [], createdAt: Date.now() };
       dispatch({ type: 'add-class', klass });
     },
     renameClass: (classId: ClassId, name: string) => dispatch({ type: 'rename-class', classId, name }),
     deleteClass: (classId: ClassId) => dispatch({ type: 'delete-class', classId }),
-    setClassDefaultTimer: (classId: ClassId, seconds: number) => dispatch({ type: 'set-class-default-timer', classId, seconds }),
     addStudents: (classId: ClassId, names: string[]) => dispatch({ type: 'add-students', classId, names }),
     removeStudent: (classId: ClassId, studentId: StudentId) => dispatch({ type: 'remove-student', classId, studentId }),
     renameStudent: (classId: ClassId, studentId: StudentId, name: string) => dispatch({ type: 'rename-student', classId, studentId, name }),

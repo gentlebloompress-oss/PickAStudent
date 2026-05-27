@@ -1,12 +1,10 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import type { Klass, ClassState, Settings, Student } from '../../types';
 import { pickGroup, pickNext } from '../../lib/pickerEngine';
 import { play } from '../../lib/sounds';
 import { burst } from '../../lib/confetti';
 import { ResponseButtons } from '../ResponseButtons';
-import { TimerRing } from '../TimerRing';
-import { useTimer } from '../../hooks/useTimer';
 import { useKey } from '../../hooks/useKeyboard';
 
 interface Props {
@@ -29,9 +27,6 @@ export function StandardMode({ klass, classState, settings, onPicked, onOutcome,
   const [revealKey, setRevealKey] = useState(0);
   const stageRef = useRef<HTMLDivElement | null>(null);
 
-  const timerSeconds = klass.defaultTimerSeconds ?? settings.timerSeconds;
-  const timer = useTimer();
-
   function pick() {
     const group = settings.groupSize > 1
       ? pickGroup(klass.students, classState, settings, settings.groupSize)
@@ -47,7 +42,6 @@ export function StandardMode({ klass, classState, settings, onPicked, onOutcome,
       const rect = stageRef.current?.getBoundingClientRect();
       burst({ origin: rect ? { x: rect.left + rect.width / 2, y: rect.top + rect.height * 0.4 } : undefined });
     }
-    if (settings.timerEnabled) timer.start(timerSeconds * 1000);
   }
 
   function handleRemove() {
@@ -57,9 +51,6 @@ export function StandardMode({ klass, classState, settings, onPicked, onOutcome,
 
   useKey([' ', 'space', 'enter'], (e) => { e.preventDefault(); pick(); });
   useKey('x', () => picked && handleRemove(), { enabled: !!picked });
-
-  // Stop timer when class/mode unmounts.
-  useEffect(() => () => timer.stop(), []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const eligibleCount = klass.students.filter((s) => !s.excluded).length;
   // Are any of the currently-picked students excluded? (Used to disable Remove
@@ -96,16 +87,6 @@ export function StandardMode({ klass, classState, settings, onPicked, onOutcome,
             </div>
             {allPickedExcluded && (
               <span className="text-xs uppercase tracking-[0.2em] text-rose-500/80">Removed</span>
-            )}
-            {settings.timerEnabled && timer.duration > 0 && (
-              <div className="flex items-center gap-3">
-                <TimerRing handle={timer} size={84} />
-                <div className="flex flex-col gap-1">
-                  <button onClick={timer.running ? timer.pause : timer.resume} className="btn-soft text-xs">{timer.running ? 'Pause' : 'Resume'}</button>
-                  <button onClick={() => timer.add(15000)} className="btn-soft text-xs">+15s</button>
-                  <button onClick={() => timer.start(timerSeconds * 1000)} className="btn-soft text-xs">Reset</button>
-                </div>
-              </div>
             )}
           </motion.div>
         )}

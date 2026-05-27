@@ -18,16 +18,6 @@ export function SettingsPanel({ open, onClose, settings, onChange }: Props) {
           <NumberStepper label="Group size" hint="How many to pick at once" min={1} max={10} value={settings.groupSize} onChange={(v) => onChange({ groupSize: v })} />
         </Section>
 
-        <Section title="Response timer">
-          <Toggle label="Enable timer" hint="Counts down after a name is picked" value={settings.timerEnabled} onChange={(v) => onChange({ timerEnabled: v })} />
-          <Choice
-            label="Default duration"
-            value={String(settings.timerSeconds)}
-            options={[['10', '10s'], ['30', '30s'], ['60', '60s'], ['90', '90s']]}
-            onChange={(v) => onChange({ timerSeconds: Number(v) })}
-          />
-        </Section>
-
         <Section title="Sound & motion">
           <Toggle label="Sound effects" value={settings.soundEnabled} onChange={(v) => onChange({ soundEnabled: v })} />
           <Choice

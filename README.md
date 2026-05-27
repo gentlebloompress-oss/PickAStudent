@@ -19,25 +19,23 @@ npm run preview     # Serve the built bundle locally
 ## Features at a glance
 
 - **Four picker modes** — Standard, Wheel, Mystery Card, Team Generator (switch with `1`–`4`).
-- **Pass / Come back / Answered** under every pick — `Enter`, `P`, `C`.
-- **Optional response timer** with green→amber→red ring and pause/+15s/reset.
+- **Pick auto-counts as a call**; the only explicit action under a reveal is **Remove student** (`X`), which excludes them for the rest of the session.
+- **Reset names** (`R`) — brings everyone removed back into the rotation.
 - **Heat map** showing how often each student has been called, plus a "Fair mode" toggle.
-- **Class management** — type, paste, or upload `.csv`/`.txt`. Export as JSON or CSV. Import to merge.
+- **Class management** — type, paste, or upload `.csv`/`.txt`. Backup-to-file and load-from-file under "Backup & sync" in the modal.
 - **Offline first** — service worker caches the whole shell. Sounds are synthesized via Web Audio (no binary assets).
 - **Themes** — light / dark / high-contrast for projectors in bright rooms.
 
 ## Keyboard shortcuts
 
-| Key      | Action                       |
-| -------- | ---------------------------- |
-| `Space`  | Pick / spin                  |
-| `Enter`  | Answered                     |
-| `P`      | Pass                         |
-| `C`      | Come back                    |
-| `1`–`4`  | Switch picker mode           |
-| `F`      | Toggle fullscreen            |
-| `R`      | Reset call counts            |
-| `Esc`    | Close modal                  |
+| Key      | Action                            |
+| -------- | --------------------------------- |
+| `Space`  | Pick / spin                       |
+| `X`      | Remove current student            |
+| `R`      | Reset names (un-remove everyone)  |
+| `1`–`4`  | Switch picker mode                |
+| `F`      | Toggle fullscreen                 |
+| `Esc`    | Close modal                       |
 
 ## Deploying for free
 
@@ -88,7 +86,6 @@ src/
   types.ts                     Domain types (Klass, Student, ClassState…)
   hooks/
     useAppState.ts             Reducer + persistence + theme/font effects
-    useTimer.ts                RAF-based countdown
     useKeyboard.ts             Global shortcut binder (skips inputs)
     useFullscreen.ts           Browser fullscreen toggle
   lib/
@@ -112,8 +109,7 @@ src/
     SettingsPanel.tsx          Settings modal
     HeatMap.tsx                Per-student call-count grid
     RecentlyPicked.tsx         Last 5 picks + outcomes + undo
-    TimerRing.tsx              SVG draining ring
-    ResponseButtons.tsx        Answered / Pass / Come back
+    ResponseButtons.tsx        Remove-student button under the reveal
     EmptyState.tsx             First-run / no-class fallback
     Modal.tsx                  Reusable modal shell
     PWAToasts.tsx              "Update ready" + install prompt
@@ -127,7 +123,7 @@ The engine already exposes everything you need:
 
 1. Add an id to `PickerMode` in `src/types.ts` (e.g. `'bingo'`).
 2. Add a tab to `src/components/ModeTabs.tsx`.
-3. Create `src/components/modes/MyMode.tsx`. Call `pickNext(students, classState, settings)` to choose a student, render whatever animation you like, then on outcome call the parent's `onOutcome([id], 'answered' | 'pass' | 'comeback')`. Reuse `ResponseButtons` and `TimerRing` to stay consistent.
+3. Create `src/components/modes/MyMode.tsx`. Call `pickNext(students, classState, settings)` to choose a student, render whatever animation you like, then call the parent's `onOutcome([id], 'answered')` to record the call. Reuse `ResponseButtons` for the Remove action to stay consistent.
 4. Add a branch in `App.tsx`'s mode `switch`.
 
 Ideas left as comments in `App.tsx`: bingo card, slot machine, tournament bracket.

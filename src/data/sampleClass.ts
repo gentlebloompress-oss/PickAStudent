@@ -13,7 +13,6 @@ export function makeSampleClass(): Klass {
     id: uid('cls_'),
     name: 'Sample Class',
     students: SAMPLE_NAMES.map((name) => ({ id: uid('stu_'), name })),
-    defaultTimerSeconds: 30,
     createdAt: Date.now(),
   };
 }

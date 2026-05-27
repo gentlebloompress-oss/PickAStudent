@@ -18,16 +18,32 @@ interface Props {
   onRenameStudent: (classId: string, studentId: string, name: string) => void;
   onToggleExclude: (classId: string, studentId: string) => void;
   onSetAllIncluded: (classId: string, included: boolean) => void;
-  onSetClassDefaultTimer: (classId: string, seconds: number) => void;
   onImport: (data: { classes: PersistedState['classes']; classStates?: PersistedState['classStates'] }) => void;
   fullState: PersistedState;
 }
 
+/**
+ * Classes & students modal.
+ *
+ *   Sidebar  ┃ Main
+ *   ─────────╂─────────────────────────────────────
+ *   add new  ┃ active class header (rename + timer)
+ *   class    ┃
+ *   list of  ┃ Add students  ─ one combined panel
+ *   classes  ┃   • textarea (one name or paste many)
+ *            ┃   • upload .csv / .txt (secondary)
+ *   Backup & ┃
+ *   sync     ┃ Students list (with All in / All out
+ *   (premium)┃                 / Download names CSV)
+ */
 export function ClassManager(props: Props) {
   const { open, onClose, classes, currentId, fullState } = props;
   const klass = classes.find((c) => c.id === currentId) ?? classes[0];
-  const [pasting, setPasting] = useState('');
-  const [newName, setNewName] = useState('');
+
+  // Single combined input for both "type one" and "paste many" — parseStudentNames
+  // auto-detects newline / comma / tab separators, so there's no UX reason to have
+  // distinct inputs for the two cases.
+  const [addInput, setAddInput] = useState('');
   const fileRef = useRef<HTMLInputElement | null>(null);
   const importRef = useRef<HTMLInputElement | null>(null);
 
@@ -36,42 +52,34 @@ export function ClassManager(props: Props) {
     if (!file || !klass) return;
     const reader = new FileReader();
     reader.onload = () => {
-      const text = String(reader.result ?? '');
-      const names = parseStudentNames(text);
+      const names = parseStudentNames(String(reader.result ?? ''));
       if (names.length > 0) props.onAddStudents(klass.id, names);
     };
     reader.readAsText(file);
     e.target.value = '';
   }
 
-  function handlePaste() {
+  function handleAddStudents() {
     if (!klass) return;
-    const names = parseStudentNames(pasting);
-    if (names.length > 0) props.onAddStudents(klass.id, names);
-    setPasting('');
+    const names = parseStudentNames(addInput);
+    if (names.length > 0) {
+      props.onAddStudents(klass.id, names);
+      setAddInput('');
+    }
   }
 
-  function handleAddOne() {
-    if (!klass || !newName.trim()) return;
-    props.onAddStudents(klass.id, [newName.trim()]);
-    setNewName('');
-  }
-
-  function exportClassJSON() {
-    if (!klass) return;
-    const blob = new Blob([exportJSON({ classes: [klass], classStates: { [klass.id]: fullState.classStates[klass.id] } })], { type: 'application/json' });
-    download(blob, `${klass.name.replace(/\s+/g, '_')}.json`);
-  }
-
-  function exportClassCSV() {
+  function downloadCurrentClassCSV() {
     if (!klass) return;
     const blob = new Blob([toCSV(klass.students.map((s) => s.name))], { type: 'text/csv' });
-    download(blob, `${klass.name.replace(/\s+/g, '_')}.csv`);
+    download(blob, `${klass.name.replace(/\s+/g, '_')}_names.csv`);
   }
 
-  function exportAllJSON() {
-    const blob = new Blob([exportJSON({ classes: fullState.classes, classStates: fullState.classStates })], { type: 'application/json' });
-    download(blob, `pickastudent_backup.json`);
+  function saveAllToFile() {
+    const blob = new Blob(
+      [exportJSON({ classes: fullState.classes, classStates: fullState.classStates })],
+      { type: 'application/json' }
+    );
+    download(blob, 'pickastudent_backup.json');
   }
 
   function handleImport(e: React.ChangeEvent<HTMLInputElement>) {
@@ -80,11 +88,12 @@ export function ClassManager(props: Props) {
     const reader = new FileReader();
     reader.onload = () => {
       const text = String(reader.result ?? '');
-      // JSON first, fall back to CSV → adds names to current class.
       const parsed = importJSON(text);
       if (parsed) {
+        // It's a backup file — restore classes wholesale.
         props.onImport(parsed);
       } else if (klass) {
+        // Not JSON — fall back to treating it as a names list for the current class.
         const names = parseStudentNames(text);
         if (names.length > 0) props.onAddStudents(klass.id, names);
       }
@@ -95,103 +104,152 @@ export function ClassManager(props: Props) {
 
   return (
     <Modal open={open} onClose={onClose} title="Classes & students" wide>
-      <div className="grid gap-4 md:grid-cols-[220px_1fr]">
-        {/* Class list */}
-        <aside className="flex flex-col gap-2">
-          <div className="flex items-center gap-2">
-            <input
-              placeholder="New class name"
-              className="flex-1 px-3 py-2 rounded-lg bg-black/[0.04] dark:bg-white/[0.06] outline-none text-sm"
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  const v = (e.target as HTMLInputElement).value.trim();
-                  if (v) { props.onAddClass(v); (e.target as HTMLInputElement).value = ''; }
-                }
-              }}
-            />
-          </div>
+      <div className="grid gap-4 md:grid-cols-[240px_1fr]">
+        {/* ─── SIDEBAR ─── */}
+        <aside className="flex flex-col gap-3">
+          <input
+            placeholder="New class name…"
+            className="px-3 py-2 rounded-lg bg-black/[0.04] dark:bg-white/[0.06] outline-none text-sm"
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                const v = (e.target as HTMLInputElement).value.trim();
+                if (v) { props.onAddClass(v); (e.target as HTMLInputElement).value = ''; }
+              }
+            }}
+          />
+
           <ul className="flex flex-col gap-1">
             {classes.map((c) => (
-              <li key={c.id} className={`group flex items-center gap-1 rounded-lg ${c.id === klass?.id ? 'bg-brand-600/10 ring-1 ring-brand-500/30' : 'hover:bg-black/[0.04] dark:hover:bg-white/[0.06]'}`}>
-                <button onClick={() => props.onSelectClass(c.id)} className="flex-1 text-left px-3 py-2 text-sm">
+              <li
+                key={c.id}
+                className={`group flex items-center gap-1 rounded-lg ${
+                  c.id === klass?.id
+                    ? 'bg-brand-600/10 ring-1 ring-brand-500/30'
+                    : 'hover:bg-black/[0.04] dark:hover:bg-white/[0.06]'
+                }`}
+              >
+                <button
+                  onClick={() => props.onSelectClass(c.id)}
+                  className="flex-1 text-left px-3 py-2 text-sm"
+                >
                   <div className="font-medium truncate">{c.name}</div>
                   <div className="text-[11px] opacity-60">{c.students.length} students</div>
                 </button>
                 <button
                   onClick={() => {
-                    if (confirm(`Delete class "${c.name}"? This can't be undone.`)) props.onDeleteClass(c.id);
+                    if (confirm(`Delete class "${c.name}"? This can't be undone.`))
+                      props.onDeleteClass(c.id);
                   }}
                   className="opacity-0 group-hover:opacity-60 hover:opacity-100 px-2 text-xs"
                   title="Delete class"
-                >✕</button>
+                >
+                  ✕
+                </button>
               </li>
             ))}
           </ul>
-          <div className="flex flex-col gap-1 mt-2">
-            <button onClick={exportAllJSON} className="btn-soft text-xs">Export all (JSON)</button>
-            <button onClick={() => importRef.current?.click()} className="btn-soft text-xs">Import file…</button>
-            <input ref={importRef} type="file" accept=".json,.csv,.txt" className="hidden" onChange={handleImport} />
+
+          {/* Backup & sync — premium feature, visually distinct from the rest. */}
+          <div className="mt-2 p-3 rounded-xl bg-gradient-to-br from-brand-500/[0.07] to-sage-500/[0.07] ring-1 ring-brand-500/20">
+            <div className="flex items-center gap-1.5 mb-1.5">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-brand-700 dark:text-brand-300">
+                Backup &amp; sync
+              </h3>
+              <span className="text-[10px] px-1.5 py-0.5 rounded bg-brand-600/15 text-brand-700 dark:text-brand-300 font-bold uppercase tracking-wider">
+                Premium
+              </span>
+            </div>
+            <p className="text-xs opacity-70 mb-3 leading-snug">
+              Save your classes to a file. Open the file on another device or
+              browser to bring them with you.
+            </p>
+            <div className="flex flex-col gap-1.5">
+              <button onClick={saveAllToFile} className="btn-soft text-xs w-full">
+                💾 Save my classes
+              </button>
+              <button onClick={() => importRef.current?.click()} className="btn-soft text-xs w-full">
+                📂 Load from file
+              </button>
+              <input
+                ref={importRef}
+                type="file"
+                accept=".json,.csv,.txt"
+                className="hidden"
+                onChange={handleImport}
+              />
+            </div>
           </div>
         </aside>
 
-        {/* Active class detail */}
+        {/* ─── MAIN ─── */}
         <section className="flex flex-col gap-3 min-w-0">
           {klass ? (
             <>
-              <div className="flex items-center gap-2">
-                <input
-                  value={klass.name}
-                  onChange={(e) => props.onRenameClass(klass.id, e.target.value)}
-                  className="flex-1 px-3 py-2 rounded-lg bg-black/[0.04] dark:bg-white/[0.06] outline-none font-display font-semibold"
+              {/* Class header — rename */}
+              <input
+                value={klass.name}
+                onChange={(e) => props.onRenameClass(klass.id, e.target.value)}
+                className="px-3 py-2 rounded-lg bg-black/[0.04] dark:bg-white/[0.06] outline-none font-display font-semibold"
+              />
+
+              {/* Add students — single panel, primary action via the Add button. */}
+              <div className="card flex flex-col gap-3">
+                <h4 className="text-xs font-semibold uppercase tracking-wider opacity-60">
+                  Add students
+                </h4>
+                <textarea
+                  value={addInput}
+                  onChange={(e) => setAddInput(e.target.value)}
+                  placeholder="Type a name, or paste many (one per line or comma-separated)"
+                  className="w-full min-h-[88px] px-3 py-2 rounded-lg bg-black/[0.04] dark:bg-white/[0.06] outline-none text-sm resize-y"
                 />
-                <select
-                  value={klass.defaultTimerSeconds ?? 30}
-                  onChange={(e) => props.onSetClassDefaultTimer(klass.id, Number(e.target.value))}
-                  className="px-2 py-2 rounded-lg bg-black/[0.04] dark:bg-white/[0.06] text-sm"
-                  title="Default response timer for this class"
-                >
-                  <option value={10}>10s</option>
-                  <option value={30}>30s</option>
-                  <option value={60}>60s</option>
-                  <option value={90}>90s</option>
-                </select>
-              </div>
-
-              <div className="grid gap-2 sm:grid-cols-3">
-                <div className="card p-3">
-                  <h4 className="text-xs font-semibold uppercase tracking-wider opacity-60 mb-2">Add one</h4>
-                  <div className="flex gap-2">
-                    <input value={newName} onChange={(e) => setNewName(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleAddOne()}
-                      placeholder="Student name"
-                      className="flex-1 px-3 py-2 rounded-lg bg-black/[0.04] dark:bg-white/[0.06] outline-none text-sm" />
-                    <button onClick={handleAddOne} className="btn-primary text-sm">Add</button>
-                  </div>
-                </div>
-                <div className="card p-3">
-                  <h4 className="text-xs font-semibold uppercase tracking-wider opacity-60 mb-2">Paste a list</h4>
-                  <textarea value={pasting} onChange={(e) => setPasting(e.target.value)}
-                    placeholder="Names — one per line or comma separated"
-                    className="w-full h-16 px-3 py-2 rounded-lg bg-black/[0.04] dark:bg-white/[0.06] outline-none text-sm resize-none" />
-                  <button onClick={handlePaste} className="btn-soft text-xs mt-2 w-full">Add pasted names</button>
-                </div>
-                <div className="card p-3">
-                  <h4 className="text-xs font-semibold uppercase tracking-wider opacity-60 mb-2">Upload</h4>
-                  <button onClick={() => fileRef.current?.click()} className="btn-soft text-xs w-full">Choose .csv / .txt…</button>
-                  <input ref={fileRef} type="file" accept=".csv,.txt" className="hidden" onChange={handleFile} />
-                  <div className="flex gap-1 mt-2">
-                    <button onClick={exportClassJSON} className="btn-ghost text-xs flex-1">Export JSON</button>
-                    <button onClick={exportClassCSV} className="btn-ghost text-xs flex-1">Export CSV</button>
-                  </div>
+                <div className="flex items-center justify-between gap-2 flex-wrap">
+                  <button onClick={() => fileRef.current?.click()} className="btn-soft text-xs">
+                    📎 Or upload .csv / .txt
+                  </button>
+                  <input
+                    ref={fileRef}
+                    type="file"
+                    accept=".csv,.txt"
+                    className="hidden"
+                    onChange={handleFile}
+                  />
+                  <button
+                    onClick={handleAddStudents}
+                    disabled={!addInput.trim()}
+                    className="btn-primary text-sm"
+                  >
+                    Add
+                  </button>
                 </div>
               </div>
 
+              {/* Student list */}
               <div className="card flex flex-col gap-2">
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between gap-2 flex-wrap">
                   <h4 className="text-sm font-semibold">{klass.students.length} students</h4>
                   <div className="flex items-center gap-2 text-xs">
-                    <button onClick={() => props.onSetAllIncluded(klass.id, true)} className="opacity-70 hover:opacity-100 underline-offset-2 hover:underline">All in</button>
+                    <button
+                      onClick={() => props.onSetAllIncluded(klass.id, true)}
+                      className="opacity-70 hover:opacity-100 underline-offset-2 hover:underline"
+                    >
+                      All in
+                    </button>
                     <span className="opacity-30">·</span>
-                    <button onClick={() => props.onSetAllIncluded(klass.id, false)} className="opacity-70 hover:opacity-100 underline-offset-2 hover:underline">All out</button>
+                    <button
+                      onClick={() => props.onSetAllIncluded(klass.id, false)}
+                      className="opacity-70 hover:opacity-100 underline-offset-2 hover:underline"
+                    >
+                      All out
+                    </button>
+                    <span className="opacity-30">·</span>
+                    <button
+                      onClick={downloadCurrentClassCSV}
+                      title="Download just the names of this class as a spreadsheet"
+                      className="opacity-70 hover:opacity-100 underline-offset-2 hover:underline"
+                    >
+                      Download as spreadsheet
+                    </button>
                   </div>
                 </div>
                 {klass.students.length === 0 ? (
@@ -209,7 +267,9 @@ export function ClassManager(props: Props) {
                         <input
                           value={s.name}
                           onChange={(e) => props.onRenameStudent(klass.id, s.id, e.target.value)}
-                          className={`flex-1 px-2 py-1 rounded bg-transparent outline-none text-sm ${s.excluded ? 'opacity-50 line-through' : ''}`}
+                          className={`flex-1 px-2 py-1 rounded bg-transparent outline-none text-sm ${
+                            s.excluded ? 'opacity-50 line-through' : ''
+                          }`}
                         />
                         <button
                           onClick={() => {
@@ -217,7 +277,9 @@ export function ClassManager(props: Props) {
                           }}
                           className="opacity-0 group-hover:opacity-60 hover:opacity-100 px-2 text-xs"
                           title="Remove student"
-                        >✕</button>
+                        >
+                          ✕
+                        </button>
                       </li>
                     ))}
                   </ul>

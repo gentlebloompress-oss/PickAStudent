@@ -3,8 +3,6 @@ import { useEffect, useMemo, useState } from 'react';
 import type { Klass, ClassState, Settings, Student } from '../../types';
 import { play } from '../../lib/sounds';
 import { burst } from '../../lib/confetti';
-import { TimerRing } from '../TimerRing';
-import { useTimer } from '../../hooks/useTimer';
 import { useKey } from '../../hooks/useKeyboard';
 
 interface Props {
@@ -64,8 +62,6 @@ export function MysteryCardMode({ klass, settings, onPicked, onOutcome, onToggle
   const [deck, setDeck] = useState<DeckEntry[]>([]);
   const [lastFlippedId, setLastFlippedId] = useState<string | null>(null);
   const [resetSignal, setResetSignal] = useState(0);
-  const timer = useTimer();
-  const timerSeconds = klass.defaultTimerSeconds ?? settings.timerSeconds;
 
   // (Re)build the deck on class swap or Reset names. Includes ALL students
   // (not just non-excluded ones) — globally-excluded students appear as
@@ -78,7 +74,6 @@ export function MysteryCardMode({ klass, settings, onPicked, onOutcome, onToggle
       icon: icons[i % icons.length],
     })));
     setLastFlippedId(null);
-    timer.stop();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [klass.id, resetSignal]);
 
@@ -89,9 +84,7 @@ export function MysteryCardMode({ klass, settings, onPicked, onOutcome, onToggle
     const student = klass.students.find((s) => s.id === lastFlippedId);
     if (!student || !student.excluded) {
       setLastFlippedId(null);
-      timer.stop();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [klass.students, lastFlippedId]);
 
   function resetNames() {
@@ -102,8 +95,6 @@ export function MysteryCardMode({ klass, settings, onPicked, onOutcome, onToggle
   // R puts everyone back AND reshuffles the deck. App.tsx's global R also
   // fires (calling setAllIncluded) — redundant but idempotent.
   useKey('r', resetNames);
-
-  useEffect(() => () => timer.stop(), []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Resolve each deck entry to its current student. Drop entries whose
   // students were deleted via the class manager.
@@ -133,7 +124,6 @@ export function MysteryCardMode({ klass, settings, onPicked, onOutcome, onToggle
       setLastFlippedId(studentId);
       play(settings.sound, settings.soundEnabled);
       if (settings.confetti) burst({ count: 70 });
-      if (settings.timerEnabled) timer.start(timerSeconds * 1000);
     } else {
       // Revealed → hidden: put the student back into the rotation.
       // The lastFlippedId sync effect above will clear it if needed.
@@ -193,18 +183,6 @@ export function MysteryCardMode({ klass, settings, onPicked, onOutcome, onToggle
             <div className="font-display font-bold text-center leading-tight bg-gradient-to-br from-brand-600 to-sage-500 bg-clip-text text-transparent" style={{ fontSize: 'clamp(2rem, 5vw, 3.4rem)' }}>
               {lastStudent.name}
             </div>
-            {settings.timerEnabled && timer.duration > 0 && (
-              <div className="flex items-center gap-3">
-                <TimerRing handle={timer} size={80} />
-                <div className="flex flex-col gap-1">
-                  <button onClick={timer.running ? timer.pause : timer.resume} className="btn-soft text-xs">
-                    {timer.running ? 'Pause' : 'Resume'}
-                  </button>
-                  <button onClick={() => timer.add(15000)} className="btn-soft text-xs">+15s</button>
-                  <button onClick={() => timer.start(timerSeconds * 1000)} className="btn-soft text-xs">Reset</button>
-                </div>
-              </div>
-            )}
           </motion.div>
         )}
       </AnimatePresence>

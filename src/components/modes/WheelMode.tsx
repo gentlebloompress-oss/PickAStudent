@@ -4,8 +4,6 @@ import { eligibleStudents, pickNext } from '../../lib/pickerEngine';
 import { play, playWheelSpin } from '../../lib/sounds';
 import { burst } from '../../lib/confetti';
 import { ResponseButtons } from '../ResponseButtons';
-import { TimerRing } from '../TimerRing';
-import { useTimer } from '../../hooks/useTimer';
 import { useKey } from '../../hooks/useKeyboard';
 
 interface Props {
@@ -45,9 +43,6 @@ export function WheelMode({ klass, classState, settings, onPicked, onOutcome, on
   const durationRef = useRef(4500);
   const targetStudentRef = useRef<Student | null>(null);
   const rafRef = useRef<number | null>(null);
-
-  const timerSeconds = klass.defaultTimerSeconds ?? settings.timerSeconds;
-  const timer = useTimer();
 
   const sliceAngle = eligible.length > 0 ? 360 / eligible.length : 360;
 
@@ -98,7 +93,6 @@ export function WheelMode({ klass, classState, settings, onPicked, onOutcome, on
         // don't overlap audibly.
         play(settings.sound, settings.soundEnabled);
         if (settings.confetti) burst({ count: 110 });
-        if (settings.timerEnabled) timer.start(timerSeconds * 1000);
       }
     }
   }
@@ -106,7 +100,6 @@ export function WheelMode({ klass, classState, settings, onPicked, onOutcome, on
   function handleRemove() {
     if (!picked) return;
     onExclude(picked.id);
-    timer.stop();
   }
 
   useKey([' ', 'space', 'enter'], (e) => { e.preventDefault(); if (!spinning) spin(); });
@@ -114,8 +107,7 @@ export function WheelMode({ klass, classState, settings, onPicked, onOutcome, on
 
   useEffect(() => () => {
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
-    timer.stop();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
 
   const radius = 180;
   const cx = 200, cy = 200;
@@ -178,7 +170,6 @@ export function WheelMode({ klass, classState, settings, onPicked, onOutcome, on
           {pickedExcluded && (
             <span className="text-xs uppercase tracking-[0.2em] text-rose-500/80">Removed</span>
           )}
-          {settings.timerEnabled && timer.duration > 0 && <TimerRing handle={timer} size={80} />}
         </div>
       )}
 
