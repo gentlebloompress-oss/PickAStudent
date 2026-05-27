@@ -61,18 +61,21 @@ export function HeatMap({ klass, classState, settings, onResetCounts, onToggleEx
           const intensity = c / max; // 0..1
 
           // Compute bg + fg so text stays readable across all three themes.
-          // Contrast mode uses a monochrome grayscale ramp to guarantee
-          // text/background separation on a pure-black stage.
           let bg: string;
           let fg: string;
           if (isContrast) {
+            // Same cool-blue → warm-orange hue gradient as the other themes
+            // for visual continuity, but at full saturation and held at
+            // lightness 25% so white text passes WCAG AA across the whole
+            // gradient (including the perceptually-bright yellow/green
+            // middle, which is where naïve high-saturation maps fail).
             if (c === 0) {
               bg = '#1a1a1a';
               fg = '#ffffff';
             } else {
-              const lightness = 25 + intensity * 65; // 25% → 90%
-              bg = `hsl(0, 0%, ${lightness}%)`;
-              fg = lightness > 55 ? '#000000' : '#ffffff';
+              const hue = 210 - intensity * 190;
+              bg = `hsl(${hue}, 100%, 25%)`;
+              fg = '#ffffff';
             }
           } else {
             const hue = 210 - intensity * 190; // cool blue → warm orange
