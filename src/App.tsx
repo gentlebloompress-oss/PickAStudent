@@ -89,10 +89,6 @@ export default function App() {
   // Esc) reverts automatically via the useFullscreen hook.
   const presenting = fullscreen.isFullscreen;
 
-  // How many students are currently removed from the rotation — drives the
-  // prominence of the "Reset names" button in the presentation top bar.
-  const removedCount = currentClass ? currentClass.students.filter((s) => s.excluded).length : 0;
-
   // Renders the active picker mode. Shared between the normal and presentation
   // layouts so the mode wiring lives in one place.
   const renderMode = (klass: Klass) => {
@@ -106,6 +102,7 @@ export default function App() {
             onPicked={() => { /* recorded on outcome */ }}
             onOutcome={(ids, outcome) => actions.recordPick(klass.id, ids, outcome)}
             onExclude={(sid) => actions.toggleExclude(klass.id, sid)}
+            onResetNames={() => actions.setAllIncluded(klass.id, true)}
           />
         );
       case 'wheel':
@@ -117,6 +114,7 @@ export default function App() {
             onPicked={() => { /* noop */ }}
             onOutcome={(ids, outcome) => actions.recordPick(klass.id, ids, outcome)}
             onExclude={(sid) => actions.toggleExclude(klass.id, sid)}
+            onResetNames={() => actions.setAllIncluded(klass.id, true)}
           />
         );
       case 'mystery':
@@ -175,9 +173,11 @@ export default function App() {
 
   return (
     <div className={`min-h-full mx-auto px-3 sm:px-5 py-3 sm:py-4 flex flex-col gap-4 ${presenting ? 'max-w-none h-full' : 'max-w-6xl'}`}>
-      {presenting && currentClass ? (
-        /* ─── Presentation / projector mode ─── */
-        <>
+      {/* Top area — slim bar when presenting, full header otherwise. Wrapped in
+          one stable slot so toggling fullscreen doesn't shift sibling indices
+          and remount the picker below (which would reset the current pick). */}
+      <div className="flex flex-col gap-4">
+        {presenting && currentClass ? (
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2.5 min-w-0">
               <img src="/logo.png" alt="" width={28} height={28} className="w-7 h-7 rounded-lg shadow-sm shrink-0" />
@@ -185,71 +185,62 @@ export default function App() {
               <span className="text-xs opacity-50 shrink-0">{currentClass.students.filter((s) => !s.excluded).length} eligible</span>
             </div>
             <div className="hidden sm:block"><ModeTabs mode={state.mode} onChange={actions.setMode} /></div>
-            <div className="flex items-center gap-2 shrink-0">
-              <button
-                onClick={() => actions.setAllIncluded(currentClass.id, true)}
-                disabled={removedCount === 0}
-                title="Bring all removed students back into the rotation (R)"
-                className={`btn h-9 px-3.5 text-sm font-medium ${
-                  removedCount > 0
-                    ? 'bg-brand-600 text-white hover:bg-brand-700 shadow-sm shadow-brand-600/25'
-                    : 'btn-soft opacity-60'
-                }`}
-              >
-                ↺ Reset names{removedCount > 0 ? ` (${removedCount})` : ''}
-              </button>
-              <button onClick={fullscreen.toggle} title="Exit fullscreen (F)" className="btn-ghost text-sm">⤺ Exit</button>
+            <button onClick={fullscreen.toggle} title="Exit fullscreen (F)" className="btn-ghost text-sm shrink-0">⤺ Exit</button>
+          </div>
+        ) : (
+          <>
+            <Header onOpenSettings={() => setSettingsOpen(true)} onOpenManager={() => setManagerOpen(true)} />
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <ClassSwitcher
+                classes={state.classes}
+                currentId={state.currentClassId}
+                onSelect={actions.setCurrent}
+                onManage={() => setManagerOpen(true)}
+              />
+              <ModeTabs mode={state.mode} onChange={actions.setMode} />
             </div>
-          </div>
-          <div className="flex-1 flex flex-col [&>.stage]:flex-1 [&>.stage]:min-h-[calc(100dvh-6rem)]">
-            {renderMode(currentClass)}
-          </div>
-        </>
+          </>
+        )}
+      </div>
+
+      {!currentClass ? (
+        <EmptyState onCreate={() => setManagerOpen(true)} />
       ) : (
         <>
-          <Header onOpenSettings={() => setSettingsOpen(true)} onOpenManager={() => setManagerOpen(true)} />
+          {/* <main> and the mode wrapper keep the same element type/position in
+              both layouts, so the active picker component (and its current pick)
+              survives the fullscreen toggle — fullscreen is just an enlargement. */}
+          <main className={presenting ? 'flex-1 flex flex-col' : 'grid gap-4 lg:grid-cols-[1fr_280px]'}>
+            <div className={presenting
+              ? 'min-w-0 flex flex-col flex-1 [&>.stage]:flex-1 [&>.stage]:min-h-[calc(100dvh-6rem)]'
+              : 'min-w-0'}>
+              {renderMode(currentClass)}
+            </div>
 
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <ClassSwitcher
-              classes={state.classes}
-              currentId={state.currentClassId}
-              onSelect={actions.setCurrent}
-              onManage={() => setManagerOpen(true)}
-            />
-            <ModeTabs mode={state.mode} onChange={actions.setMode} />
-          </div>
-
-          {!currentClass ? (
-            <EmptyState onCreate={() => setManagerOpen(true)} />
-          ) : (
-            <>
-              <main className="grid gap-4 lg:grid-cols-[1fr_280px]">
-                <div className="min-w-0">{renderMode(currentClass)}</div>
-
-                <aside className="flex flex-col gap-4">
-                  <RecentlyPicked
-                    klass={currentClass}
-                    classState={currentClassState}
-                    onUndo={() => actions.undoPick(currentClass.id)}
-                  />
-                  <ShortcutsCard />
-                </aside>
-              </main>
-
-              {heatMapAllowed ? (
-                <HeatMap
+            {!presenting && (
+              <aside className="flex flex-col gap-4">
+                <RecentlyPicked
                   klass={currentClass}
                   classState={currentClassState}
-                  settings={state.settings}
-                  onResetCounts={() => actions.resetCounts(currentClass.id)}
-                  onToggleExclude={(sid) => actions.toggleExclude(currentClass.id, sid)}
-                  onIncludeAll={() => actions.setAllIncluded(currentClass.id, true)}
+                  onUndo={() => actions.undoPick(currentClass.id)}
                 />
-              ) : (
-                <HeatMapLocked onUpgrade={() => requireUpgrade('heatmap')} />
-              )}
-            </>
-          )}
+                <ShortcutsCard />
+              </aside>
+            )}
+          </main>
+
+          {!presenting && (heatMapAllowed ? (
+            <HeatMap
+              klass={currentClass}
+              classState={currentClassState}
+              settings={state.settings}
+              onResetCounts={() => actions.resetCounts(currentClass.id)}
+              onToggleExclude={(sid) => actions.toggleExclude(currentClass.id, sid)}
+              onIncludeAll={() => actions.setAllIncluded(currentClass.id, true)}
+            />
+          ) : (
+            <HeatMapLocked onUpgrade={() => requireUpgrade('heatmap')} />
+          ))}
         </>
       )}
 

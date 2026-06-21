@@ -5,6 +5,7 @@ import { pickGroup, pickNext } from '../../lib/pickerEngine';
 import { play } from '../../lib/sounds';
 import { burst } from '../../lib/confetti';
 import { ResponseButtons } from '../ResponseButtons';
+import { ResetNamesButton } from '../ResetNamesButton';
 import { useKey } from '../../hooks/useKeyboard';
 
 interface Props {
@@ -14,6 +15,8 @@ interface Props {
   onPicked: (studentIds: string[]) => void;
   onOutcome: (studentIds: string[], outcome: 'answered' | 'pass' | 'comeback') => void;
   onExclude: (studentId: string) => void;
+  /** Bring all removed students back into the rotation. */
+  onResetNames: () => void;
 }
 
 /**
@@ -22,7 +25,7 @@ interface Props {
  * explicit action is "Remove student", which excludes the current student
  * from future picks for the rest of the session.
  */
-export function StandardMode({ klass, classState, settings, onPicked, onOutcome, onExclude }: Props) {
+export function StandardMode({ klass, classState, settings, onPicked, onOutcome, onExclude, onResetNames }: Props) {
   const [picked, setPicked] = useState<Student[] | null>(null);
   const [revealKey, setRevealKey] = useState(0);
   const stageRef = useRef<HTMLDivElement | null>(null);
@@ -53,6 +56,7 @@ export function StandardMode({ klass, classState, settings, onPicked, onOutcome,
   useKey('x', () => picked && handleRemove(), { enabled: !!picked });
 
   const eligibleCount = klass.students.filter((s) => !s.excluded).length;
+  const removedCount = klass.students.filter((s) => s.excluded).length;
   // Are any of the currently-picked students excluded? (Used to disable Remove
   // when the user has already removed the active group.)
   const allPickedExcluded = !!picked && picked.every((p) => klass.students.find((s) => s.id === p.id)?.excluded);
@@ -92,16 +96,21 @@ export function StandardMode({ klass, classState, settings, onPicked, onOutcome,
         )}
       </AnimatePresence>
 
-      <div className="flex flex-wrap items-center justify-center gap-3">
-        <button
-          onClick={pick}
-          disabled={eligibleCount === 0}
-          className="btn-primary h-12 px-7 text-base font-semibold"
-        >
-          {picked ? 'Pick another' : 'Pick a student'}
-          <kbd className="kbd ml-1.5">Space</kbd>
-        </button>
-        {picked && <ResponseButtons onRemove={handleRemove} disabled={allPickedExcluded} />}
+      <div className="flex flex-col items-center gap-3">
+        <div className="flex flex-wrap items-center justify-center gap-3">
+          <button
+            onClick={pick}
+            disabled={eligibleCount === 0}
+            className="btn-primary h-12 px-7 text-base font-semibold"
+          >
+            {picked ? 'Pick another' : 'Pick a student'}
+            <kbd className="kbd ml-1.5">Space</kbd>
+          </button>
+          {picked && <ResponseButtons onRemove={handleRemove} disabled={allPickedExcluded} />}
+        </div>
+        {removedCount > 0 && (
+          <ResetNamesButton count={removedCount} onClick={onResetNames} />
+        )}
       </div>
     </div>
   );

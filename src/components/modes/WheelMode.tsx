@@ -4,6 +4,7 @@ import { eligibleStudents, pickNext } from '../../lib/pickerEngine';
 import { play, playWheelSpin } from '../../lib/sounds';
 import { burst } from '../../lib/confetti';
 import { ResponseButtons } from '../ResponseButtons';
+import { ResetNamesButton } from '../ResetNamesButton';
 import { useKey } from '../../hooks/useKeyboard';
 
 interface Props {
@@ -13,6 +14,8 @@ interface Props {
   onPicked: (studentIds: string[]) => void;
   onOutcome: (studentIds: string[], outcome: 'answered' | 'pass' | 'comeback') => void;
   onExclude: (studentId: string) => void;
+  /** Bring all removed students back into the rotation. */
+  onResetNames: () => void;
 }
 
 const PALETTE = ['#5fb1f7', '#7cc7a3', '#f0b73a', '#ef6f6c', '#9b6cf2', '#3acdef', '#f59e9b', '#a3d977'];
@@ -21,7 +24,7 @@ const PALETTE = ['#5fb1f7', '#7cc7a3', '#f0b73a', '#ef6f6c', '#9b6cf2', '#3acdef
  * Wheel of fortune. Each spin auto-records the landed student as a call.
  * "Spin again" advances; "Remove student" excludes the current winner.
  */
-export function WheelMode({ klass, classState, settings, onPicked, onOutcome, onExclude }: Props) {
+export function WheelMode({ klass, classState, settings, onPicked, onOutcome, onExclude, onResetNames }: Props) {
   // Wheel must visually contain anyone the engine could pick.
   const eligible = useMemo(() => {
     const base = eligibleStudents(klass.students, classState, settings.noRepeatMode);
@@ -112,6 +115,7 @@ export function WheelMode({ klass, classState, settings, onPicked, onOutcome, on
   const radius = 180;
   const cx = 200, cy = 200;
   const pickedExcluded = !!picked && (klass.students.find((s) => s.id === picked.id)?.excluded ?? false);
+  const removedCount = klass.students.filter((s) => s.excluded).length;
 
   return (
     <div className="stage flex flex-col items-center justify-center gap-6 px-4 py-8 min-h-[420px]">
@@ -173,16 +177,21 @@ export function WheelMode({ klass, classState, settings, onPicked, onOutcome, on
         </div>
       )}
 
-      <div className="flex flex-wrap items-center justify-center gap-3">
-        <button
-          onClick={spin}
-          disabled={spinning || eligible.length === 0}
-          className="btn-primary h-12 px-7 text-base font-semibold"
-        >
-          {spinning ? 'Spinning…' : picked ? 'Spin again' : 'Spin the wheel'}
-          {!spinning && <kbd className="kbd ml-1.5">Space</kbd>}
-        </button>
-        {picked && <ResponseButtons onRemove={handleRemove} disabled={pickedExcluded} />}
+      <div className="flex flex-col items-center gap-3">
+        <div className="flex flex-wrap items-center justify-center gap-3">
+          <button
+            onClick={spin}
+            disabled={spinning || eligible.length === 0}
+            className="btn-primary h-12 px-7 text-base font-semibold"
+          >
+            {spinning ? 'Spinning…' : picked ? 'Spin again' : 'Spin the wheel'}
+            {!spinning && <kbd className="kbd ml-1.5">Space</kbd>}
+          </button>
+          {picked && <ResponseButtons onRemove={handleRemove} disabled={pickedExcluded} />}
+        </div>
+        {removedCount > 0 && (
+          <ResetNamesButton count={removedCount} onClick={onResetNames} />
+        )}
       </div>
     </div>
   );

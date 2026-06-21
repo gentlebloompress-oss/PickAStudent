@@ -1,10 +1,12 @@
 import type { PickerMode } from '../types';
 
-const TABS: { id: PickerMode; label: string; emoji: string; key: string }[] = [
-  { id: 'standard', label: 'Standard', emoji: '✨', key: '1' },
-  { id: 'wheel', label: 'Wheel', emoji: '🎡', key: '2' },
-  { id: 'mystery', label: 'Mystery', emoji: '🃏', key: '3' },
-  { id: 'teams', label: 'Teams', emoji: '🧩', key: '4' },
+// Number keys 1–4 still switch modes (wired globally in App.tsx); the badges
+// are just no longer shown on the tabs to keep them clean.
+const TABS: { id: PickerMode; label: string; emoji: string }[] = [
+  { id: 'standard', label: 'Standard', emoji: '✨' },
+  { id: 'wheel', label: 'Wheel', emoji: '🎡' },
+  { id: 'mystery', label: 'Mystery', emoji: '🃏' },
+  { id: 'teams', label: 'Teams', emoji: '🧩' },
 ];
 
 interface Props {
@@ -31,7 +33,6 @@ export function ModeTabs({ mode, onChange }: Props) {
           >
             <span aria-hidden>{t.emoji}</span>
             <span>{t.label}</span>
-            <kbd className="kbd ml-1">{t.key}</kbd>
           </button>
         );
       })}
