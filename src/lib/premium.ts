@@ -30,7 +30,7 @@ export const LEMON_SQUEEZY_CONFIG = {
   apiBase: 'https://api.lemonsqueezy.com',
 
   /** Shown on the upgrade modal. */
-  priceDisplay: '$9.99',
+  priceDisplay: '$4.99',
   productName: 'PickAStudent Premium',
 };
 

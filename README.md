@@ -40,7 +40,7 @@ so activation happens client-side.
 **Before launch, replace the placeholders in [`src/lib/premium.ts`](src/lib/premium.ts):**
 
 1. Create a Lemon Squeezy account → store → product with **License Keys enabled**
-   (activation limit 5, no expiry), priced as a **single payment**.
+   (activation limit 3, no expiry), priced as a **single payment**.
 2. Copy the product's **Buy link** into `LEMON_SQUEEZY_CONFIG.checkoutUrl`.
 3. Update `priceDisplay` / `productName` if they differ.
 4. Test in Lemon Squeezy **Test mode** with card `4242 4242 4242 4242`; you'll get

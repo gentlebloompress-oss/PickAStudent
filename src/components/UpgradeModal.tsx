@@ -70,7 +70,7 @@ export function UpgradeModal({ open, reason, onClose }: Props) {
             <Feature>Create unlimited classes</Feature>
             <Feature>Backup &amp; sync — save your classes to a file, load on any device</Feature>
             <Feature>One-time payment, lifetime use (no subscription)</Feature>
-            <Feature>Activate on up to 5 devices, swap any time</Feature>
+            <Feature>Activate on up to 3 devices, swap any time</Feature>
           </ul>
 
           <div className="flex flex-col sm:flex-row gap-2 mt-1">
