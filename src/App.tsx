@@ -89,6 +89,10 @@ export default function App() {
   // Esc) reverts automatically via the useFullscreen hook.
   const presenting = fullscreen.isFullscreen;
 
+  // How many students are currently removed from the rotation — drives the
+  // prominence of the "Reset names" button in the presentation top bar.
+  const removedCount = currentClass ? currentClass.students.filter((s) => s.excluded).length : 0;
+
   // Renders the active picker mode. Shared between the normal and presentation
   // layouts so the mode wiring lives in one place.
   const renderMode = (klass: Klass) => {
@@ -181,7 +185,21 @@ export default function App() {
               <span className="text-xs opacity-50 shrink-0">{currentClass.students.filter((s) => !s.excluded).length} eligible</span>
             </div>
             <div className="hidden sm:block"><ModeTabs mode={state.mode} onChange={actions.setMode} /></div>
-            <button onClick={fullscreen.toggle} title="Exit fullscreen (F)" className="btn-ghost text-sm shrink-0">⤺ Exit</button>
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                onClick={() => actions.setAllIncluded(currentClass.id, true)}
+                disabled={removedCount === 0}
+                title="Bring all removed students back into the rotation (R)"
+                className={`btn h-9 px-3.5 text-sm font-medium ${
+                  removedCount > 0
+                    ? 'bg-brand-600 text-white hover:bg-brand-700 shadow-sm shadow-brand-600/25'
+                    : 'btn-soft opacity-60'
+                }`}
+              >
+                ↺ Reset names{removedCount > 0 ? ` (${removedCount})` : ''}
+              </button>
+              <button onClick={fullscreen.toggle} title="Exit fullscreen (F)" className="btn-ghost text-sm">⤺ Exit</button>
+            </div>
           </div>
           <div className="flex-1 flex flex-col [&>.stage]:flex-1 [&>.stage]:min-h-[calc(100dvh-6rem)]">
             {renderMode(currentClass)}
