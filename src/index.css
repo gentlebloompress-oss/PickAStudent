@@ -125,6 +125,13 @@ body {
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { scrollbar-width: none; }
 
+/* On touch devices (no physical keyboard) the keyboard-shortcut chips are
+   noise — hide them everywhere. The shortcuts still work for anyone who does
+   have a keyboard; the Shortcuts card itself is hidden in React on touch. */
+@media (hover: none) and (pointer: coarse) {
+  .kbd { display: none !important; }
+}
+
 /* 3D card flip helpers */
 .flip-3d { perspective: 1200px; }
 .flip-inner { transform-style: preserve-3d; transition: transform 600ms cubic-bezier(.2,.8,.2,1); }

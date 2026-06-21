@@ -16,7 +16,7 @@ interface Props {
 
 export function ModeTabs({ mode, onChange }: Props) {
   return (
-    <div role="tablist" className="flex items-center gap-1 p-1 rounded-xl bg-black/[0.04] dark:bg-white/[0.06] w-fit">
+    <div role="tablist" className="flex items-center gap-1 p-1 rounded-xl bg-black/[0.04] dark:bg-white/[0.06] w-fit max-w-full overflow-x-auto no-scrollbar">
       {TABS.map((t) => {
         const active = t.id === mode;
         return (
@@ -25,7 +25,7 @@ export function ModeTabs({ mode, onChange }: Props) {
             role="tab"
             aria-selected={active}
             onClick={() => onChange(t.id)}
-            className={`px-3.5 py-1.5 rounded-lg text-sm font-medium transition flex items-center gap-1.5 ${
+            className={`shrink-0 px-3.5 py-1.5 rounded-lg text-sm font-medium transition flex items-center gap-1.5 ${
               active
                 ? 'bg-white text-ink shadow-sm dark:bg-white/[0.12] dark:text-ink-dark'
                 : 'text-ink/60 hover:text-ink dark:text-ink-dark/60 dark:hover:text-ink-dark'

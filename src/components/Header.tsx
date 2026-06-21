@@ -19,7 +19,7 @@ export function Header({ onOpenSettings, onOpenManager }: Props) {
         />
         <div className="leading-tight">
           <div className="font-display text-lg font-bold">PickAStudent</div>
-          <div className="text-[11px] opacity-60 -mt-0.5">A frictionless classroom name picker</div>
+          <div className="hidden sm:block text-[11px] opacity-60 -mt-0.5">A frictionless classroom name picker</div>
         </div>
       </div>
       <div className="flex items-center gap-1.5">

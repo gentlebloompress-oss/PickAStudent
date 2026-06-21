@@ -20,6 +20,7 @@ import { useAppState } from './hooks/useAppState';
 import { useKey } from './hooks/useKeyboard';
 import { useFullscreen } from './hooks/useFullscreen';
 import { usePremium } from './hooks/usePremium';
+import { useCoarsePointer } from './hooks/useCoarsePointer';
 
 import type { Klass, PersistedState } from './types';
 import { freshClassState } from './lib/pickerEngine';
@@ -40,6 +41,7 @@ import { FREE_CLASS_LIMIT, FREE_STUDENT_LIMIT } from './lib/premium';
 export default function App() {
   const { state, currentClass, currentClassState, actions } = useAppState();
   const { isPremium, license, deactivate } = usePremium();
+  const coarsePointer = useCoarsePointer();
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [managerOpen, setManagerOpen] = useState(false);
   const [upgrade, setUpgrade] = useState<{ open: boolean; reason: UpgradeReason }>({ open: false, reason: 'general' });
@@ -224,7 +226,7 @@ export default function App() {
                   classState={currentClassState}
                   onUndo={() => actions.undoPick(currentClass.id)}
                 />
-                <ShortcutsCard />
+                {!coarsePointer && <ShortcutsCard />}
               </aside>
             )}
           </main>
