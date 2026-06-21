@@ -184,7 +184,7 @@ export function MysteryCardMode({ klass, settings, onPicked, onOutcome, onToggle
             className="flex flex-col items-center gap-3 mt-2"
           >
             <div className="text-xs uppercase tracking-[0.25em] opacity-50">It's…</div>
-            <div className="font-display font-bold text-center leading-tight bg-gradient-to-br from-brand-600 to-sage-500 bg-clip-text text-transparent" style={{ fontSize: 'clamp(2rem, 5vw, 3.4rem)' }}>
+            <div className="picked-name-text font-display font-bold text-center leading-tight" style={{ fontSize: 'clamp(2rem, 5vw, 3.4rem)' }}>
               {lastStudent.name}
             </div>
           </motion.div>

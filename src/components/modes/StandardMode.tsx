@@ -69,9 +69,9 @@ export function StandardMode({ klass, classState, settings, onPicked, onOutcome,
             transition={{ duration: 0.18 }}
             className="flex flex-col items-center gap-3"
           >
-            <span className="text-sm uppercase tracking-[0.2em] opacity-50">Press space</span>
-            <span className="font-display text-3xl sm:text-5xl font-bold opacity-50">Pick a student</span>
-            <span className="text-sm opacity-50">{eligibleCount} eligible</span>
+            <span className="text-sm uppercase tracking-[0.2em] opacity-60">Press space</span>
+            <span className="font-display text-3xl sm:text-5xl font-bold opacity-70">Pick a student</span>
+            <span className="text-sm opacity-60">{eligibleCount} eligible</span>
           </motion.div>
         ) : (
           <motion.div
@@ -82,7 +82,7 @@ export function StandardMode({ klass, classState, settings, onPicked, onOutcome,
             transition={{ duration: 0.32, ease: [0.2, 0.8, 0.2, 1] }}
             className="flex flex-col items-center gap-5"
           >
-            <div className="picked-name font-display font-bold leading-tight bg-gradient-to-br from-brand-600 to-sage-500 bg-clip-text text-transparent">
+            <div className="picked-name picked-name-text font-display font-bold leading-tight">
               {picked.map((s) => s.name).join(' · ')}
             </div>
             {allPickedExcluded && (

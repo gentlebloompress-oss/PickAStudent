@@ -164,7 +164,7 @@ export function WheelMode({ klass, classState, settings, onPicked, onOutcome, on
 
       {picked && (
         <div className="flex flex-col items-center gap-3">
-          <div className="font-display font-bold bg-gradient-to-br from-brand-600 to-sage-500 bg-clip-text text-transparent" style={{ fontSize: 'clamp(2rem, 5vw, 3.5rem)' }}>
+          <div className="picked-name-text font-display font-bold" style={{ fontSize: 'clamp(2rem, 5vw, 3.5rem)' }}>
             {picked.name}
           </div>
           {pickedExcluded && (

@@ -91,6 +91,27 @@ body {
 .font-size-large  .picked-name { font-size: clamp(3rem, 8vw, 6rem); }
 .font-size-huge   .picked-name { font-size: clamp(4rem, 11vw, 9rem); }
 
+/* Reveal-name color treatment. Light mode uses a solid on-brand blue so the
+   picked name stays legible on a projector in a bright room (the old
+   blue→green gradient washed out at the green end). Dark mode keeps the
+   gradient — it reads beautifully on a dark stage. Contrast mode is solid
+   white. Order matters: .contrast carries .dark too, so its rule comes last. */
+.picked-name-text {
+  color: #1d5fbb; /* brand-700 — ~5.8:1 on white, comfortably legible at distance */
+}
+.dark .picked-name-text {
+  background-image: linear-gradient(to bottom right, #2576dc, #56b389);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+}
+.contrast .picked-name-text {
+  background-image: none;
+  color: #ffffff;
+  -webkit-text-fill-color: #ffffff;
+}
+
 /* Reduce motion if requested */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {

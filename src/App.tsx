@@ -21,7 +21,7 @@ import { useKey } from './hooks/useKeyboard';
 import { useFullscreen } from './hooks/useFullscreen';
 import { usePremium } from './hooks/usePremium';
 
-import type { PersistedState } from './types';
+import type { Klass, PersistedState } from './types';
 import { freshClassState } from './lib/pickerEngine';
 import { FREE_CLASS_LIMIT, FREE_STUDENT_LIMIT } from './lib/premium';
 
@@ -84,6 +84,62 @@ export default function App() {
   // The fairness heat map is free for the first (primary) class only.
   const heatMapAllowed = isPremium || (!!currentClass && state.classes[0]?.id === currentClass.id);
 
+  // Presentation mode: when projecting (fullscreen), strip the side panels and
+  // heat map so the picker stage owns the screen. Exiting fullscreen (button or
+  // Esc) reverts automatically via the useFullscreen hook.
+  const presenting = fullscreen.isFullscreen;
+
+  // Renders the active picker mode. Shared between the normal and presentation
+  // layouts so the mode wiring lives in one place.
+  const renderMode = (klass: Klass) => {
+    switch (state.mode) {
+      case 'standard':
+        return (
+          <StandardMode
+            klass={klass}
+            classState={currentClassState}
+            settings={state.settings}
+            onPicked={() => { /* recorded on outcome */ }}
+            onOutcome={(ids, outcome) => actions.recordPick(klass.id, ids, outcome)}
+            onExclude={(sid) => actions.toggleExclude(klass.id, sid)}
+          />
+        );
+      case 'wheel':
+        return (
+          <WheelMode
+            klass={klass}
+            classState={currentClassState}
+            settings={state.settings}
+            onPicked={() => { /* noop */ }}
+            onOutcome={(ids, outcome) => actions.recordPick(klass.id, ids, outcome)}
+            onExclude={(sid) => actions.toggleExclude(klass.id, sid)}
+          />
+        );
+      case 'mystery':
+        return (
+          <MysteryCardMode
+            klass={klass}
+            classState={currentClassState}
+            settings={state.settings}
+            onPicked={() => { /* noop */ }}
+            onOutcome={(ids, outcome) => actions.recordPick(klass.id, ids, outcome)}
+            onToggleExclude={(sid) => actions.toggleExclude(klass.id, sid)}
+            onUndoStudent={(sid) => actions.undoStudentPick(klass.id, sid)}
+            onResetNames={() => actions.setAllIncluded(klass.id, true)}
+          />
+        );
+      case 'teams':
+        return (
+          <TeamGeneratorMode
+            klass={klass}
+            classState={currentClassState}
+            settings={state.settings}
+            onLockTeams={(teams) => actions.rememberTeams(klass.id, teams)}
+          />
+        );
+    }
+  };
+
   // Global shortcuts (mode switching, fullscreen, reset).
   useKey('1', () => actions.setMode('standard'));
   useKey('2', () => actions.setMode('wheel'));
@@ -114,88 +170,67 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-full max-w-6xl mx-auto px-3 sm:px-5 py-3 sm:py-4 flex flex-col gap-4">
-      <Header onOpenSettings={() => setSettingsOpen(true)} onOpenManager={() => setManagerOpen(true)} />
-
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <ClassSwitcher
-          classes={state.classes}
-          currentId={state.currentClassId}
-          onSelect={actions.setCurrent}
-          onManage={() => setManagerOpen(true)}
-        />
-        <ModeTabs mode={state.mode} onChange={actions.setMode} />
-      </div>
-
-      {!currentClass ? (
-        <EmptyState onCreate={() => setManagerOpen(true)} />
+    <div className={`min-h-full mx-auto px-3 sm:px-5 py-3 sm:py-4 flex flex-col gap-4 ${presenting ? 'max-w-none h-full' : 'max-w-6xl'}`}>
+      {presenting && currentClass ? (
+        /* ─── Presentation / projector mode ─── */
+        <>
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <img src="/logo.png" alt="" width={28} height={28} className="w-7 h-7 rounded-lg shadow-sm shrink-0" />
+              <span className="font-display font-bold truncate">{currentClass.name}</span>
+              <span className="text-xs opacity-50 shrink-0">{currentClass.students.filter((s) => !s.excluded).length} eligible</span>
+            </div>
+            <div className="hidden sm:block"><ModeTabs mode={state.mode} onChange={actions.setMode} /></div>
+            <button onClick={fullscreen.toggle} title="Exit fullscreen (F)" className="btn-ghost text-sm shrink-0">⤺ Exit</button>
+          </div>
+          <div className="flex-1 flex flex-col [&>.stage]:flex-1 [&>.stage]:min-h-[calc(100dvh-6rem)]">
+            {renderMode(currentClass)}
+          </div>
+        </>
       ) : (
         <>
-          <main className="grid gap-4 lg:grid-cols-[1fr_280px]">
-            <div className="min-w-0">
-              {state.mode === 'standard' && (
-                <StandardMode
-                  klass={currentClass}
-                  classState={currentClassState}
-                  settings={state.settings}
-                  onPicked={() => { /* recorded on outcome */ }}
-                  onOutcome={(ids, outcome) => actions.recordPick(currentClass.id, ids, outcome)}
-                  onExclude={(sid) => actions.toggleExclude(currentClass.id, sid)}
-                />
-              )}
-              {state.mode === 'wheel' && (
-                <WheelMode
-                  klass={currentClass}
-                  classState={currentClassState}
-                  settings={state.settings}
-                  onPicked={() => { /* noop */ }}
-                  onOutcome={(ids, outcome) => actions.recordPick(currentClass.id, ids, outcome)}
-                  onExclude={(sid) => actions.toggleExclude(currentClass.id, sid)}
-                />
-              )}
-              {state.mode === 'mystery' && (
-                <MysteryCardMode
-                  klass={currentClass}
-                  classState={currentClassState}
-                  settings={state.settings}
-                  onPicked={() => { /* noop */ }}
-                  onOutcome={(ids, outcome) => actions.recordPick(currentClass.id, ids, outcome)}
-                  onToggleExclude={(sid) => actions.toggleExclude(currentClass.id, sid)}
-                  onUndoStudent={(sid) => actions.undoStudentPick(currentClass.id, sid)}
-                  onResetNames={() => actions.setAllIncluded(currentClass.id, true)}
-                />
-              )}
-              {state.mode === 'teams' && (
-                <TeamGeneratorMode
-                  klass={currentClass}
-                  classState={currentClassState}
-                  settings={state.settings}
-                  onLockTeams={(teams) => actions.rememberTeams(currentClass.id, teams)}
-                />
-              )}
-            </div>
+          <Header onOpenSettings={() => setSettingsOpen(true)} onOpenManager={() => setManagerOpen(true)} />
 
-            <aside className="flex flex-col gap-4">
-              <RecentlyPicked
-                klass={currentClass}
-                classState={currentClassState}
-                onUndo={() => actions.undoPick(currentClass.id)}
-              />
-              <ShortcutsCard />
-            </aside>
-          </main>
-
-          {heatMapAllowed ? (
-            <HeatMap
-              klass={currentClass}
-              classState={currentClassState}
-              settings={state.settings}
-              onResetCounts={() => actions.resetCounts(currentClass.id)}
-              onToggleExclude={(sid) => actions.toggleExclude(currentClass.id, sid)}
-              onIncludeAll={() => actions.setAllIncluded(currentClass.id, true)}
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <ClassSwitcher
+              classes={state.classes}
+              currentId={state.currentClassId}
+              onSelect={actions.setCurrent}
+              onManage={() => setManagerOpen(true)}
             />
+            <ModeTabs mode={state.mode} onChange={actions.setMode} />
+          </div>
+
+          {!currentClass ? (
+            <EmptyState onCreate={() => setManagerOpen(true)} />
           ) : (
-            <HeatMapLocked onUpgrade={() => requireUpgrade('heatmap')} />
+            <>
+              <main className="grid gap-4 lg:grid-cols-[1fr_280px]">
+                <div className="min-w-0">{renderMode(currentClass)}</div>
+
+                <aside className="flex flex-col gap-4">
+                  <RecentlyPicked
+                    klass={currentClass}
+                    classState={currentClassState}
+                    onUndo={() => actions.undoPick(currentClass.id)}
+                  />
+                  <ShortcutsCard />
+                </aside>
+              </main>
+
+              {heatMapAllowed ? (
+                <HeatMap
+                  klass={currentClass}
+                  classState={currentClassState}
+                  settings={state.settings}
+                  onResetCounts={() => actions.resetCounts(currentClass.id)}
+                  onToggleExclude={(sid) => actions.toggleExclude(currentClass.id, sid)}
+                  onIncludeAll={() => actions.setAllIncluded(currentClass.id, true)}
+                />
+              ) : (
+                <HeatMapLocked onUpgrade={() => requireUpgrade('heatmap')} />
+              )}
+            </>
           )}
         </>
       )}
