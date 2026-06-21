@@ -135,6 +135,7 @@ export default function App() {
                   onPicked={() => { /* noop */ }}
                   onOutcome={(ids, outcome) => actions.recordPick(currentClass.id, ids, outcome)}
                   onToggleExclude={(sid) => actions.toggleExclude(currentClass.id, sid)}
+                  onUndoStudent={(sid) => actions.undoStudentPick(currentClass.id, sid)}
                   onResetNames={() => actions.setAllIncluded(currentClass.id, true)}
                 />
               )}

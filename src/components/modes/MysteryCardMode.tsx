@@ -17,6 +17,8 @@ interface Props {
    * card is unflipped (reveal → hide: student goes back into rotation).
    */
   onToggleExclude: (studentId: string) => void;
+  /** Reverse a single student's recorded pick (used when a card is flipped back). */
+  onUndoStudent: (studentId: string) => void;
   /** Bring all globally-excluded students back into the rotation. */
   onResetNames: () => void;
 }
@@ -58,7 +60,7 @@ function shuffle<T>(arr: T[]): T[] {
   return a;
 }
 
-export function MysteryCardMode({ klass, settings, onPicked, onOutcome, onToggleExclude, onResetNames }: Props) {
+export function MysteryCardMode({ klass, settings, onPicked, onOutcome, onToggleExclude, onUndoStudent, onResetNames }: Props) {
   const [deck, setDeck] = useState<DeckEntry[]>([]);
   const [lastFlippedId, setLastFlippedId] = useState<string | null>(null);
   const [resetSignal, setResetSignal] = useState(0);
@@ -125,9 +127,11 @@ export function MysteryCardMode({ klass, settings, onPicked, onOutcome, onToggle
       play(settings.sound, settings.soundEnabled);
       if (settings.confetti) burst({ count: 70 });
     } else {
-      // Revealed → hidden: put the student back into the rotation.
+      // Revealed → hidden: put the student back into the rotation AND reverse
+      // the call this flip recorded, so the count stays consistent.
       // The lastFlippedId sync effect above will clear it if needed.
       onToggleExclude(studentId);
+      onUndoStudent(studentId);
     }
   }
 

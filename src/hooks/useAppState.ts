@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef } from 'react';
 import type { ClassId, ClassState, Klass, PersistedState, PickerMode, Settings, Student, StudentId } from '../types';
-import { freshClassState, recordPick, resetCounts, undoLastPick } from '../lib/pickerEngine';
+import { freshClassState, recordPick, resetCounts, undoLastPick, undoStudentPick } from '../lib/pickerEngine';
 import { rememberTeams } from '../lib/teamSplitter';
 import { loadState, saveState } from '../lib/storage';
 import { uid } from '../lib/ids';
@@ -45,6 +45,7 @@ type Action =
   | { type: 'set-all-included'; classId: ClassId; included: boolean }
   | { type: 'record-pick'; classId: ClassId; studentIds: StudentId[]; outcome: 'answered' | 'pass' | 'comeback' }
   | { type: 'undo-pick'; classId: ClassId }
+  | { type: 'undo-student-pick'; classId: ClassId; studentId: StudentId }
   | { type: 'reset-counts'; classId: ClassId }
   | { type: 'remember-teams'; classId: ClassId; teams: Student[][] }
   | { type: 'update-settings'; patch: Partial<Settings> }
@@ -122,6 +123,10 @@ function reducer(state: PersistedState, action: Action): PersistedState {
       const cs = state.classStates[action.classId] ?? freshClassState();
       return { ...state, classStates: { ...state.classStates, [action.classId]: undoLastPick(cs) } };
     }
+    case 'undo-student-pick': {
+      const cs = state.classStates[action.classId] ?? freshClassState();
+      return { ...state, classStates: { ...state.classStates, [action.classId]: undoStudentPick(cs, action.studentId) } };
+    }
     case 'reset-counts': {
       const cs = state.classStates[action.classId] ?? freshClassState();
       return { ...state, classStates: { ...state.classStates, [action.classId]: resetCounts(cs) } };
@@ -175,6 +180,7 @@ export function useAppState() {
     setAllIncluded: (classId: ClassId, included: boolean) => dispatch({ type: 'set-all-included', classId, included }),
     recordPick: (classId: ClassId, studentIds: StudentId[], outcome: 'answered' | 'pass' | 'comeback') => dispatch({ type: 'record-pick', classId, studentIds, outcome }),
     undoPick: (classId: ClassId) => dispatch({ type: 'undo-pick', classId }),
+    undoStudentPick: (classId: ClassId, studentId: StudentId) => dispatch({ type: 'undo-student-pick', classId, studentId }),
     resetCounts: (classId: ClassId) => dispatch({ type: 'reset-counts', classId }),
     rememberTeams: (classId: ClassId, teams: Student[][]) => dispatch({ type: 'remember-teams', classId, teams }),
     updateSettings: (patch: Partial<Settings>) => dispatch({ type: 'update-settings', patch }),

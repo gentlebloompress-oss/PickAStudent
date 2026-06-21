@@ -134,6 +134,40 @@ export function recordPick(
   return next;
 }
 
+/**
+ * Undo the most recent pick for ONE specific student. Used when a Mystery card
+ * is flipped back face-down: it should reverse the call it recorded (decrement
+ * the count, drop the matching history entry) so the heat map and Recently
+ * Picked stay consistent until the next reset.
+ *
+ * No-op on the count if the student has no recorded pick (e.g. they were
+ * excluded via the heat map, which never counted a call) — so we never
+ * decrement below what was actually added.
+ */
+export function undoStudentPick(state: ClassState, studentId: StudentId): ClassState {
+  const idx = state.history.findIndex((e) => e.studentIds.includes(studentId));
+  const next: ClassState = {
+    ...state,
+    callCounts: { ...state.callCounts },
+    cycleSeen: state.cycleSeen.filter((id) => id !== studentId),
+    comeBackQueue: state.comeBackQueue.filter((q) => q.studentId !== studentId),
+    history: [...state.history],
+    recentTeams: state.recentTeams,
+  };
+  if (idx !== -1) {
+    const evt = next.history[idx];
+    if (evt.studentIds.length === 1) {
+      next.history.splice(idx, 1);
+    } else {
+      next.history[idx] = { ...evt, studentIds: evt.studentIds.filter((id) => id !== studentId) };
+    }
+    if (evt.outcome !== 'pass') {
+      next.callCounts[studentId] = Math.max(0, (next.callCounts[studentId] ?? 0) - 1);
+    }
+  }
+  return next;
+}
+
 /** Undo the most recent pick event. Best-effort: walks the history. */
 export function undoLastPick(state: ClassState): ClassState {
   const [last, ...rest] = state.history;
