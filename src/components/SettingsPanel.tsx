@@ -1,17 +1,25 @@
+import { useState } from 'react';
 import type { Settings } from '../types';
 import { Modal } from './Modal';
+import { maskKey, type StoredLicense } from '../lib/premium';
 
 interface Props {
   open: boolean;
   onClose: () => void;
   settings: Settings;
   onChange: (patch: Partial<Settings>) => void;
+  isPremium: boolean;
+  license: StoredLicense | null;
+  onUpgrade: () => void;
+  onDeactivate: () => Promise<{ ok: boolean; message?: string }>;
 }
 
-export function SettingsPanel({ open, onClose, settings, onChange }: Props) {
+export function SettingsPanel({ open, onClose, settings, onChange, isPremium, license, onUpgrade, onDeactivate }: Props) {
   return (
     <Modal open={open} onClose={onClose} title="Settings">
       <div className="flex flex-col gap-4">
+        <PremiumSection isPremium={isPremium} license={license} onUpgrade={onUpgrade} onDeactivate={onDeactivate} />
+
         <Section title="Picking">
           <Toggle label="Fair mode" hint="Picks under-called students more often" value={settings.fairMode} onChange={(v) => onChange({ fairMode: v })} />
           <Toggle label="No-repeat mode" hint="Each student picked once before any repeat" value={settings.noRepeatMode} onChange={(v) => onChange({ noRepeatMode: v })} />
@@ -55,6 +63,64 @@ export function SettingsPanel({ open, onClose, settings, onChange }: Props) {
         </p>
       </div>
     </Modal>
+  );
+}
+
+function PremiumSection({ isPremium, license, onUpgrade, onDeactivate }: {
+  isPremium: boolean;
+  license: StoredLicense | null;
+  onUpgrade: () => void;
+  onDeactivate: () => Promise<{ ok: boolean; message?: string }>;
+}) {
+  const [working, setWorking] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleDeactivate() {
+    if (!confirm('Deactivate premium on this device? This frees an activation slot. You can re-activate later with your key.')) return;
+    setWorking(true);
+    setError(null);
+    const res = await onDeactivate();
+    setWorking(false);
+    if (!res.ok) setError(res.message ?? 'Could not deactivate. Try again.');
+  }
+
+  return (
+    <div className="p-3 rounded-xl bg-gradient-to-br from-brand-500/[0.08] to-sage-500/[0.08] ring-1 ring-brand-500/20 flex flex-col gap-2">
+      <div className="flex items-center justify-between gap-2">
+        <h3 className="text-sm font-bold">Premium</h3>
+        <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider ${
+          isPremium
+            ? 'bg-sage-500/20 text-sage-600 dark:text-sage-400'
+            : 'bg-black/10 dark:bg-white/10 opacity-70'
+        }`}>
+          {isPremium ? 'Active' : 'Free'}
+        </span>
+      </div>
+
+      {isPremium && license ? (
+        <>
+          <div className="text-xs opacity-70 flex flex-col gap-0.5">
+            <div>Unlimited classes + backup &amp; sync unlocked.</div>
+            <div>Device: <span className="font-medium">{license.instanceName}</span></div>
+            <div>Key: <span className="font-mono">{maskKey(license.key)}</span></div>
+          </div>
+          {error && <div className="text-xs text-rose-600 dark:text-rose-300">{error}</div>}
+          <button onClick={handleDeactivate} disabled={working} className="btn-soft text-xs self-start mt-1">
+            {working ? 'Deactivating…' : 'Deactivate this device'}
+          </button>
+        </>
+      ) : (
+        <>
+          <p className="text-xs opacity-70 leading-snug">
+            Unlock unlimited classes and the ability to save &amp; move your classes
+            across devices. One-time payment, lifetime use.
+          </p>
+          <button onClick={onUpgrade} className="btn-primary text-sm self-start mt-1">
+            Upgrade
+          </button>
+        </>
+      )}
+    </div>
   );
 }
 

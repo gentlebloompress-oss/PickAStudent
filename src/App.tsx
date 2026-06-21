@@ -14,12 +14,16 @@ import { WheelMode } from './components/modes/WheelMode';
 import { MysteryCardMode } from './components/modes/MysteryCardMode';
 import { TeamGeneratorMode } from './components/modes/TeamGeneratorMode';
 
+import { UpgradeModal, type UpgradeReason } from './components/UpgradeModal';
+
 import { useAppState } from './hooks/useAppState';
 import { useKey } from './hooks/useKeyboard';
 import { useFullscreen } from './hooks/useFullscreen';
+import { usePremium } from './hooks/usePremium';
 
 import type { PersistedState } from './types';
 import { freshClassState } from './lib/pickerEngine';
+import { FREE_CLASS_LIMIT } from './lib/premium';
 
 /**
  * Root layout. The four picker modes share a thin contract:
@@ -35,9 +39,24 @@ import { freshClassState } from './lib/pickerEngine';
  */
 export default function App() {
   const { state, currentClass, currentClassState, actions } = useAppState();
+  const { isPremium, license, deactivate } = usePremium();
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [managerOpen, setManagerOpen] = useState(false);
+  const [upgrade, setUpgrade] = useState<{ open: boolean; reason: UpgradeReason }>({ open: false, reason: 'general' });
   const fullscreen = useFullscreen();
+
+  function requireUpgrade(reason: UpgradeReason) {
+    setUpgrade({ open: true, reason });
+  }
+
+  /** Gate: free users can create up to FREE_CLASS_LIMIT classes. */
+  function handleAddClass(name: string) {
+    if (!isPremium && state.classes.length >= FREE_CLASS_LIMIT) {
+      requireUpgrade('classes');
+      return;
+    }
+    actions.addClass(name);
+  }
 
   // Global shortcuts (mode switching, fullscreen, reset).
   useKey('1', () => actions.setMode('standard'));
@@ -155,6 +174,10 @@ export default function App() {
         onClose={() => setSettingsOpen(false)}
         settings={state.settings}
         onChange={actions.updateSettings}
+        isPremium={isPremium}
+        license={license}
+        onUpgrade={() => requireUpgrade('general')}
+        onDeactivate={deactivate}
       />
       <ClassManager
         open={managerOpen}
@@ -162,7 +185,7 @@ export default function App() {
         classes={state.classes}
         currentId={state.currentClassId}
         onSelectClass={actions.setCurrent}
-        onAddClass={actions.addClass}
+        onAddClass={handleAddClass}
         onRenameClass={actions.renameClass}
         onDeleteClass={actions.deleteClass}
         onAddStudents={actions.addStudents}
@@ -172,6 +195,15 @@ export default function App() {
         onSetAllIncluded={actions.setAllIncluded}
         onImport={handleImport}
         fullState={state}
+        isPremium={isPremium}
+        classLimit={FREE_CLASS_LIMIT}
+        onRequireUpgrade={requireUpgrade}
+      />
+
+      <UpgradeModal
+        open={upgrade.open}
+        reason={upgrade.reason}
+        onClose={() => setUpgrade((u) => ({ ...u, open: false }))}
       />
 
       <PWAToasts />

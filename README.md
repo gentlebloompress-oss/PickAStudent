@@ -25,6 +25,32 @@ npm run preview     # Serve the built bundle locally
 - **Class management** — type, paste, or upload `.csv`/`.txt`. Backup-to-file and load-from-file under "Backup & sync" in the modal.
 - **Offline first** — service worker caches the whole shell. Sounds are synthesized via Web Audio (no binary assets).
 - **Themes** — light / dark / high-contrast for projectors in bright rooms.
+- **Premium (one-time unlock)** — free tier allows 3 classes; premium adds unlimited classes plus backup & sync. See below.
+
+## Premium / paywall (Lemon Squeezy)
+
+The app is free for up to 3 classes. Two features are gated behind a one-time
+purchase: **unlimited classes** and **backup & sync** (save/load classes to a file).
+
+Payments + license keys are handled by [Lemon Squeezy](https://lemonsqueezy.com)
+(Merchant of Record — they remit global tax for you). No backend is required:
+the Lemon Squeezy license endpoints authenticate with the license key itself,
+so activation happens client-side.
+
+**Before launch, replace the placeholders in [`src/lib/premium.ts`](src/lib/premium.ts):**
+
+1. Create a Lemon Squeezy account → store → product with **License Keys enabled**
+   (activation limit 5, no expiry), priced as a **single payment**.
+2. Copy the product's **Buy link** into `LEMON_SQUEEZY_CONFIG.checkoutUrl`.
+3. Update `priceDisplay` / `productName` if they differ.
+4. Test in Lemon Squeezy **Test mode** with card `4242 4242 4242 4242`; you'll get
+   a test license key by email — paste it into the app's "I have a key" form.
+5. Flip Lemon Squeezy to **Live mode** and swap the test Buy link for the live one.
+
+**Local testing without a real product:** open the browser console and run
+`__pasUnlockForDev()` to grant premium locally (and `__pasLockForDev()` to clear it).
+
+The free-tier class limit lives in `FREE_CLASS_LIMIT` (same file).
 
 ## Keyboard shortcuts
 

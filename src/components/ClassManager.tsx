@@ -20,6 +20,9 @@ interface Props {
   onSetAllIncluded: (classId: string, included: boolean) => void;
   onImport: (data: { classes: PersistedState['classes']; classStates?: PersistedState['classStates'] }) => void;
   fullState: PersistedState;
+  isPremium: boolean;
+  classLimit: number;
+  onRequireUpgrade: (reason: 'classes' | 'sync') => void;
 }
 
 /**
@@ -37,8 +40,9 @@ interface Props {
  *   (premium)┃                 / Download names CSV)
  */
 export function ClassManager(props: Props) {
-  const { open, onClose, classes, currentId, fullState } = props;
+  const { open, onClose, classes, currentId, fullState, isPremium, classLimit, onRequireUpgrade } = props;
   const klass = classes.find((c) => c.id === currentId) ?? classes[0];
+  const atClassLimit = !isPremium && classes.length >= classLimit;
 
   // Single combined input for both "type one" and "paste many" — parseStudentNames
   // auto-detects newline / comma / tab separators, so there's no UX reason to have
@@ -75,11 +79,17 @@ export function ClassManager(props: Props) {
   }
 
   function saveAllToFile() {
+    if (!isPremium) { onRequireUpgrade('sync'); return; }
     const blob = new Blob(
       [exportJSON({ classes: fullState.classes, classStates: fullState.classStates })],
       { type: 'application/json' }
     );
     download(blob, 'pickastudent_backup.json');
+  }
+
+  function triggerLoad() {
+    if (!isPremium) { onRequireUpgrade('sync'); return; }
+    importRef.current?.click();
   }
 
   function handleImport(e: React.ChangeEvent<HTMLInputElement>) {
@@ -107,16 +117,25 @@ export function ClassManager(props: Props) {
       <div className="grid gap-4 md:grid-cols-[240px_1fr]">
         {/* ─── SIDEBAR ─── */}
         <aside className="flex flex-col gap-3">
-          <input
-            placeholder="New class name…"
-            className="px-3 py-2 rounded-lg bg-black/[0.04] dark:bg-white/[0.06] outline-none text-sm"
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                const v = (e.target as HTMLInputElement).value.trim();
-                if (v) { props.onAddClass(v); (e.target as HTMLInputElement).value = ''; }
-              }
-            }}
-          />
+          {atClassLimit ? (
+            <button
+              onClick={() => onRequireUpgrade('classes')}
+              className="px-3 py-2 rounded-lg text-sm text-left bg-brand-600/10 ring-1 ring-brand-500/30 text-brand-700 dark:text-brand-300 hover:bg-brand-600/15"
+            >
+              + New class <span className="opacity-70">— upgrade to add more</span>
+            </button>
+          ) : (
+            <input
+              placeholder="New class name…"
+              className="px-3 py-2 rounded-lg bg-black/[0.04] dark:bg-white/[0.06] outline-none text-sm"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  const v = (e.target as HTMLInputElement).value.trim();
+                  if (v) { props.onAddClass(v); (e.target as HTMLInputElement).value = ''; }
+                }
+              }}
+            />
+          )}
 
           <ul className="flex flex-col gap-1">
             {classes.map((c) => (
@@ -155,9 +174,15 @@ export function ClassManager(props: Props) {
               <h3 className="text-xs font-bold uppercase tracking-wider text-brand-700 dark:text-brand-300">
                 Backup &amp; sync
               </h3>
-              <span className="text-[10px] px-1.5 py-0.5 rounded bg-brand-600/15 text-brand-700 dark:text-brand-300 font-bold uppercase tracking-wider">
-                Premium
-              </span>
+              {isPremium ? (
+                <span className="text-[10px] px-1.5 py-0.5 rounded bg-sage-500/20 text-sage-600 dark:text-sage-400 font-bold uppercase tracking-wider">
+                  Active
+                </span>
+              ) : (
+                <span className="text-[10px] px-1.5 py-0.5 rounded bg-brand-600/15 text-brand-700 dark:text-brand-300 font-bold uppercase tracking-wider">
+                  Premium
+                </span>
+              )}
             </div>
             <p className="text-xs opacity-70 mb-3 leading-snug">
               Save your classes to a file. Open the file on another device or
@@ -167,7 +192,7 @@ export function ClassManager(props: Props) {
               <button onClick={saveAllToFile} className="btn-soft text-xs w-full">
                 💾 Save my classes
               </button>
-              <button onClick={() => importRef.current?.click()} className="btn-soft text-xs w-full">
+              <button onClick={triggerLoad} className="btn-soft text-xs w-full">
                 📂 Load from file
               </button>
               <input
