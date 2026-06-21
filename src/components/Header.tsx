@@ -10,9 +10,13 @@ export function Header({ onOpenSettings, onOpenManager }: Props) {
   return (
     <header className="flex items-center justify-between gap-3 py-2">
       <div className="flex items-center gap-2.5">
-        <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-brand-500 to-sage-500 grid place-items-center text-white font-display font-bold shadow-sm">
-          P
-        </div>
+        <img
+          src="/logo.png"
+          alt="PickAStudent logo"
+          width={36}
+          height={36}
+          className="w-9 h-9 rounded-xl shadow-sm"
+        />
         <div className="leading-tight">
           <div className="font-display text-lg font-bold">PickAStudent</div>
           <div className="text-[11px] opacity-60 -mt-0.5">A frictionless classroom name picker</div>

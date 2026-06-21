@@ -158,9 +158,24 @@ Ideas left as comments in `App.tsx`: bingo card, slot machine, tournament bracke
 
 React 18 · Vite 5 · TypeScript · Tailwind CSS · Framer Motion · `vite-plugin-pwa` (Workbox under the hood). No telemetry, no analytics.
 
-## Replacing placeholder icons
+## Icons
 
-The icons in `public/` are SVG placeholders — a "P" on a blue→green gradient. Replace `favicon.svg`, `pwa-192x192.svg`, `pwa-512x512.svg`, and `apple-touch-icon.svg` with your own art. iOS prefers PNG for the home-screen icon, so for best results add a 180×180 PNG named `apple-touch-icon.png`, drop it in `public/`, and update the `<link rel="apple-touch-icon">` in `index.html` plus the `includeAssets` list in `vite.config.ts`.
+App icons are generated from `PickaStudent Logo.png` (repo root) into `public/`:
+`favicon-32.png`, `favicon-48.png`, `apple-touch-icon.png` (180×180),
+`pwa-192x192.png`, `pwa-512x512.png` (also used as the maskable icon), and
+`logo.png` (256×256, shown in the in-app header).
+
+To refresh them after changing the source logo, regenerate with `sips` (macOS):
+
+```sh
+SRC="PickaStudent Logo.png"
+sips -s format png -z 512 512 "$SRC" --out public/pwa-512x512.png
+sips -s format png -z 192 192 "$SRC" --out public/pwa-192x192.png
+sips -s format png -z 180 180 "$SRC" --out public/apple-touch-icon.png
+sips -s format png -z 256 256 "$SRC" --out public/logo.png
+sips -s format png -z 48 48   "$SRC" --out public/favicon-48.png
+sips -s format png -z 32 32   "$SRC" --out public/favicon-32.png
+```
 
 ## License
 

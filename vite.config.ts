@@ -7,7 +7,7 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'prompt',
-      includeAssets: ['favicon.svg', 'apple-touch-icon.svg', 'robots.txt'],
+      includeAssets: ['favicon-32.png', 'favicon-48.png', 'apple-touch-icon.png', 'robots.txt'],
       manifest: {
         name: 'PickAStudent',
         short_name: 'PickAStudent',
@@ -19,8 +19,9 @@ export default defineConfig({
         start_url: '/',
         scope: '/',
         icons: [
-          { src: 'pwa-192x192.svg', sizes: '192x192', type: 'image/svg+xml', purpose: 'any' },
-          { src: 'pwa-512x512.svg', sizes: '512x512', type: 'image/svg+xml', purpose: 'any maskable' },
+          { src: 'pwa-192x192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+          { src: 'pwa-512x512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
+          { src: 'pwa-512x512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
         ],
       },
       workbox: {
