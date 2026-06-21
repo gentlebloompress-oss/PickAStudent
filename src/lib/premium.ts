@@ -37,6 +37,9 @@ export const LEMON_SQUEEZY_CONFIG = {
 /** Free users can have up to this many classes. */
 export const FREE_CLASS_LIMIT = 3;
 
+/** Free users can have up to this many students per class. */
+export const FREE_STUDENT_LIMIT = 25;
+
 // ─── License persistence ────────────────────────────────────────────────────
 
 const STORAGE_KEY = 'pickastudent:license';

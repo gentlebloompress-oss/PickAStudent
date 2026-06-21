@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
 import { Modal } from './Modal';
-import { LEMON_SQUEEZY_CONFIG, suggestInstanceName } from '../lib/premium';
+import { FREE_STUDENT_LIMIT, LEMON_SQUEEZY_CONFIG, suggestInstanceName } from '../lib/premium';
 import { usePremium } from '../hooks/usePremium';
 
 /** Where the upgrade prompt was triggered from — drives the headline copy. */
-export type UpgradeReason = 'classes' | 'sync' | 'general';
+export type UpgradeReason = 'classes' | 'students' | 'heatmap' | 'sync' | 'general';
 
 interface Props {
   open: boolean;
@@ -56,6 +56,10 @@ export function UpgradeModal({ open, reason, onClose }: Props) {
   const headline =
     reason === 'classes'
       ? "You've reached the free limit of 3 classes."
+      : reason === 'students'
+      ? `You've reached the free limit of ${FREE_STUDENT_LIMIT} students in a class.`
+      : reason === 'heatmap'
+      ? 'The fairness heat map is free for one class — unlock it for all of them.'
       : reason === 'sync'
       ? 'Move your classes between devices.'
       : 'Unlock the full PickAStudent.';
@@ -67,7 +71,8 @@ export function UpgradeModal({ open, reason, onClose }: Props) {
           <p className="text-sm opacity-80">{headline}</p>
 
           <ul className="text-sm flex flex-col gap-2 my-1">
-            <Feature>Create unlimited classes</Feature>
+            <Feature>Unlimited classes &amp; unlimited students per class</Feature>
+            <Feature>Fairness heat map for every class, not just one</Feature>
             <Feature>Backup &amp; sync — save your classes to a file, load on any device</Feature>
             <Feature>One-time payment, lifetime use (no subscription)</Feature>
             <Feature>Activate on up to 3 devices, swap any time</Feature>

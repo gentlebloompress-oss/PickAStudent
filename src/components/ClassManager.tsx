@@ -22,7 +22,8 @@ interface Props {
   fullState: PersistedState;
   isPremium: boolean;
   classLimit: number;
-  onRequireUpgrade: (reason: 'classes' | 'sync') => void;
+  studentLimit: number;
+  onRequireUpgrade: (reason: 'classes' | 'students' | 'sync') => void;
 }
 
 /**
@@ -40,9 +41,10 @@ interface Props {
  *   (premium)┃                 / Download names CSV)
  */
 export function ClassManager(props: Props) {
-  const { open, onClose, classes, currentId, fullState, isPremium, classLimit, onRequireUpgrade } = props;
+  const { open, onClose, classes, currentId, fullState, isPremium, classLimit, studentLimit, onRequireUpgrade } = props;
   const klass = classes.find((c) => c.id === currentId) ?? classes[0];
   const atClassLimit = !isPremium && classes.length >= classLimit;
+  const atStudentLimit = !!klass && !isPremium && klass.students.length >= studentLimit;
 
   // Single combined input for both "type one" and "paste many" — parseStudentNames
   // auto-detects newline / comma / tab separators, so there's no UX reason to have
@@ -245,10 +247,23 @@ export function ClassManager(props: Props) {
                   <h4 className="text-xs font-semibold uppercase tracking-wider opacity-60">
                     {isEmptyClass ? 'Add your first students' : 'Add students'}
                   </h4>
-                  {isEmptyClass && (
+                  {isEmptyClass ? (
                     <span className="text-[11px] font-semibold text-brand-700 dark:text-brand-300">Next step ↓</span>
-                  )}
+                  ) : !isPremium ? (
+                    <span className={`text-[11px] font-medium ${atStudentLimit ? 'text-brand-700 dark:text-brand-300' : 'opacity-60'}`}>
+                      {klass.students.length} / {studentLimit} students
+                    </span>
+                  ) : null}
                 </div>
+
+                {atStudentLimit && (
+                  <button
+                    onClick={() => onRequireUpgrade('students')}
+                    className="text-left text-xs rounded-lg px-3 py-2 bg-brand-600/10 ring-1 ring-brand-500/30 text-brand-700 dark:text-brand-300 hover:bg-brand-600/15"
+                  >
+                    Free classes hold up to {studentLimit} students. <strong>Upgrade</strong> for unlimited.
+                  </button>
+                )}
                 <textarea
                   ref={addRef}
                   value={addInput}

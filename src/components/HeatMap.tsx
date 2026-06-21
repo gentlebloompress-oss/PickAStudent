@@ -12,6 +12,25 @@ interface Props {
   onIncludeAll: () => void;
 }
 
+/**
+ * Locked placeholder shown (free tier) on every class except the primary one —
+ * the fairness heat map is free for a single class and premium for the rest.
+ */
+export function HeatMapLocked({ onUpgrade }: { onUpgrade: () => void }) {
+  return (
+    <section className="card relative overflow-hidden flex flex-col items-center text-center gap-2 py-8">
+      <div className="text-2xl">📊🔒</div>
+      <h3 className="text-sm font-semibold">Fairness heat map — premium for this class</h3>
+      <p className="text-xs opacity-70 max-w-md">
+        The heat map is free for your first class. Unlock it for every class to
+        see at a glance who's been called and keep participation fair across all
+        your groups.
+      </p>
+      <button onClick={onUpgrade} className="btn-primary text-sm mt-1">Upgrade</button>
+    </section>
+  );
+}
+
 export function HeatMap({ klass, classState, settings, onResetCounts, onToggleExclude, onIncludeAll }: Props) {
   const summary = useMemo(() => summarizeCounts(klass.students, classState), [klass.students, classState]);
   const max = Math.max(1, summary.max);
