@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { Klass, PersistedState } from '../types';
 import { Modal } from './Modal';
 import { parseStudentNames, toCSV } from '../lib/parseStudents';
@@ -50,6 +50,22 @@ export function ClassManager(props: Props) {
   const [addInput, setAddInput] = useState('');
   const fileRef = useRef<HTMLInputElement | null>(null);
   const importRef = useRef<HTMLInputElement | null>(null);
+  const addRef = useRef<HTMLTextAreaElement | null>(null);
+  const prevClassId = useRef<string | null>(null);
+
+  const isEmptyClass = !!klass && klass.students.length === 0;
+
+  // When the user switches to (or just created) an empty class, drop the cursor
+  // straight into the "Add students" box — that's the clear next step.
+  useEffect(() => {
+    if (!open || !klass) { prevClassId.current = null; return; }
+    if (klass.id !== prevClassId.current) {
+      prevClassId.current = klass.id;
+      if (klass.students.length === 0) {
+        setTimeout(() => addRef.current?.focus(), 60);
+      }
+    }
+  }, [open, klass]);
 
   function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -117,25 +133,28 @@ export function ClassManager(props: Props) {
       <div className="grid gap-4 md:grid-cols-[240px_1fr]">
         {/* ─── SIDEBAR ─── */}
         <aside className="flex flex-col gap-3">
-          {atClassLimit ? (
-            <button
-              onClick={() => onRequireUpgrade('classes')}
-              className="px-3 py-2 rounded-lg text-sm text-left bg-brand-600/10 ring-1 ring-brand-500/30 text-brand-700 dark:text-brand-300 hover:bg-brand-600/15"
-            >
-              + New class <span className="opacity-70">— upgrade to add more</span>
-            </button>
-          ) : (
-            <input
-              placeholder="New class name…"
-              className="px-3 py-2 rounded-lg bg-black/[0.04] dark:bg-white/[0.06] outline-none text-sm"
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  const v = (e.target as HTMLInputElement).value.trim();
-                  if (v) { props.onAddClass(v); (e.target as HTMLInputElement).value = ''; }
-                }
-              }}
-            />
-          )}
+          <div className="flex flex-col gap-1.5">
+            <h3 className="text-xs font-semibold uppercase tracking-wider opacity-60">Your classes</h3>
+            {atClassLimit ? (
+              <button
+                onClick={() => onRequireUpgrade('classes')}
+                className="px-3 py-2 rounded-lg text-sm text-left bg-brand-600/10 ring-1 ring-brand-500/30 text-brand-700 dark:text-brand-300 hover:bg-brand-600/15"
+              >
+                + New class <span className="opacity-70">— upgrade to add more</span>
+              </button>
+            ) : (
+              <input
+                placeholder="+ New class name, then Enter"
+                className="px-3 py-2 rounded-lg bg-black/[0.04] dark:bg-white/[0.06] outline-none text-sm"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    const v = (e.target as HTMLInputElement).value.trim();
+                    if (v) { props.onAddClass(v); (e.target as HTMLInputElement).value = ''; }
+                  }
+                }}
+              />
+            )}
+          </div>
 
           <ul className="flex flex-col gap-1">
             {classes.map((c) => (
@@ -211,20 +230,33 @@ export function ClassManager(props: Props) {
           {klass ? (
             <>
               {/* Class header — rename */}
-              <input
-                value={klass.name}
-                onChange={(e) => props.onRenameClass(klass.id, e.target.value)}
-                className="px-3 py-2 rounded-lg bg-black/[0.04] dark:bg-white/[0.06] outline-none font-display font-semibold"
-              />
+              <label className="flex flex-col gap-1">
+                <span className="text-xs font-semibold uppercase tracking-wider opacity-60">Class name</span>
+                <input
+                  value={klass.name}
+                  onChange={(e) => props.onRenameClass(klass.id, e.target.value)}
+                  className="px-3 py-2 rounded-lg bg-black/[0.04] dark:bg-white/[0.06] outline-none font-display font-semibold"
+                />
+              </label>
 
-              {/* Add students — single panel, primary action via the Add button. */}
-              <div className="card flex flex-col gap-3">
-                <h4 className="text-xs font-semibold uppercase tracking-wider opacity-60">
-                  Add students
-                </h4>
+              {/* Add students — highlighted as the clear next step when the class is empty. */}
+              <div className={`card flex flex-col gap-3 ${isEmptyClass ? 'ring-2 ring-brand-500/50' : ''}`}>
+                <div className="flex items-center justify-between gap-2">
+                  <h4 className="text-xs font-semibold uppercase tracking-wider opacity-60">
+                    {isEmptyClass ? 'Add your first students' : 'Add students'}
+                  </h4>
+                  {isEmptyClass && (
+                    <span className="text-[11px] font-semibold text-brand-700 dark:text-brand-300">Next step ↓</span>
+                  )}
+                </div>
                 <textarea
+                  ref={addRef}
                   value={addInput}
                   onChange={(e) => setAddInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    // Cmd/Ctrl+Enter submits without forcing users to reach for the mouse.
+                    if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') { e.preventDefault(); handleAddStudents(); }
+                  }}
                   placeholder="Type a name, or paste many (one per line or comma-separated)"
                   className="w-full min-h-[88px] px-3 py-2 rounded-lg bg-black/[0.04] dark:bg-white/[0.06] outline-none text-sm resize-y"
                 />
@@ -249,37 +281,41 @@ export function ClassManager(props: Props) {
                 </div>
               </div>
 
-              {/* Student list */}
-              <div className="card flex flex-col gap-2">
-                <div className="flex items-center justify-between gap-2 flex-wrap">
-                  <h4 className="text-sm font-semibold">{klass.students.length} students</h4>
-                  <div className="flex items-center gap-2 text-xs">
-                    <button
-                      onClick={() => props.onSetAllIncluded(klass.id, true)}
-                      className="opacity-70 hover:opacity-100 underline-offset-2 hover:underline"
-                    >
-                      All in
-                    </button>
-                    <span className="opacity-30">·</span>
-                    <button
-                      onClick={() => props.onSetAllIncluded(klass.id, false)}
-                      className="opacity-70 hover:opacity-100 underline-offset-2 hover:underline"
-                    >
-                      All out
-                    </button>
-                    <span className="opacity-30">·</span>
-                    <button
-                      onClick={downloadCurrentClassCSV}
-                      title="Download just the names of this class as a spreadsheet"
-                      className="opacity-70 hover:opacity-100 underline-offset-2 hover:underline"
-                    >
-                      Download as spreadsheet
-                    </button>
-                  </div>
+              {/* Student list — only shown once the class has students. */}
+              {isEmptyClass ? (
+                <div className="flex flex-col items-center text-center gap-1 py-8 opacity-70">
+                  <div className="text-3xl mb-1">🧑‍🏫</div>
+                  <p className="text-sm font-medium">"{klass.name}" has no students yet</p>
+                  <p className="text-xs opacity-80">Type or paste names above, then press <strong>Add</strong>.</p>
                 </div>
-                {klass.students.length === 0 ? (
-                  <p className="text-sm opacity-60 py-3">No students yet — add some above.</p>
-                ) : (
+              ) : (
+                <div className="card flex flex-col gap-2">
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                    <h4 className="text-sm font-semibold">{klass.students.length} students</h4>
+                    <div className="flex items-center gap-2 text-xs">
+                      <button
+                        onClick={() => props.onSetAllIncluded(klass.id, true)}
+                        className="opacity-70 hover:opacity-100 underline-offset-2 hover:underline"
+                      >
+                        All in
+                      </button>
+                      <span className="opacity-30">·</span>
+                      <button
+                        onClick={() => props.onSetAllIncluded(klass.id, false)}
+                        className="opacity-70 hover:opacity-100 underline-offset-2 hover:underline"
+                      >
+                        All out
+                      </button>
+                      <span className="opacity-30">·</span>
+                      <button
+                        onClick={downloadCurrentClassCSV}
+                        title="Download just the names of this class as a spreadsheet"
+                        className="opacity-70 hover:opacity-100 underline-offset-2 hover:underline"
+                      >
+                        Download as spreadsheet
+                      </button>
+                    </div>
+                  </div>
                   <ul className="grid sm:grid-cols-2 gap-1">
                     {klass.students.map((s) => (
                       <li key={s.id} className="flex items-center gap-2 group">
@@ -308,8 +344,8 @@ export function ClassManager(props: Props) {
                       </li>
                     ))}
                   </ul>
-                )}
-              </div>
+                </div>
+              )}
             </>
           ) : (
             <p className="text-sm opacity-60">Create a class to get started.</p>
