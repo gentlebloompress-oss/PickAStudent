@@ -246,6 +246,8 @@ export default function App() {
         </>
       )}
 
+      {!presenting && <Footer />}
+
       <SettingsPanel
         open={settingsOpen}
         onClose={() => setSettingsOpen(false)}
@@ -286,6 +288,20 @@ export default function App() {
 
       <PWAToasts />
     </div>
+  );
+}
+
+function Footer() {
+  return (
+    <footer className="mt-auto pt-3 text-center text-xs opacity-50">
+      <nav className="flex items-center justify-center gap-2.5 flex-wrap">
+        <a href="/privacy.html" target="_blank" rel="noopener" className="hover:opacity-100 hover:underline">Privacy</a>
+        <span aria-hidden="true">·</span>
+        <a href="/terms.html" target="_blank" rel="noopener" className="hover:opacity-100 hover:underline">Terms</a>
+        <span aria-hidden="true">·</span>
+        <a href="/refund.html" target="_blank" rel="noopener" className="hover:opacity-100 hover:underline">Refunds</a>
+      </nav>
+    </footer>
   );
 }
 
