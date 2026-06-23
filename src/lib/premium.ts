@@ -1,35 +1,14 @@
 /**
- * Lemon Squeezy paywall — config + license activation API + local persistence.
+ * Gumroad paywall — config + license verification + local persistence.
  *
- * The Lemon Squeezy license endpoints (`/v1/licenses/activate`, `/validate`,
- * `/deactivate`) are designed to be called directly from end-user clients —
- * they accept the license key itself as authentication, so a frontend-only
- * app can use them safely. No backend API key required.
+ * Gumroad's /v2/licenses/verify endpoint is designed for client-side use —
+ * it accepts the license key itself as authentication, so no backend needed.
  */
 
-// ─── REPLACE THESE PLACEHOLDERS WHEN YOU LAUNCH ─────────────────────────────
-//
-// 1. Sign in at https://app.lemonsqueezy.com, switch to Test mode, create a
-//    product with License Keys enabled (activation limit 5, no expiry).
-// 2. On the product page, copy the Buy link → paste into `checkoutUrl` below.
-// 3. Update `priceDisplay` if you change the price.
-// 4. When ready to go Live: flip to Live mode in LS, copy the LIVE Buy link
-//    over the test one.
-//
-// You can keep the placeholder URLs while you build / test the UX — the Buy
-// button will open them; activation will fail (no real keys exist) but you
-// can manually drop a fake licence into localStorage to test the unlocked
-// paths. See `__pasUnlockForDev` at the bottom of this file.
-// ────────────────────────────────────────────────────────────────────────────
-
-export const LEMON_SQUEEZY_CONFIG = {
-  /** From the Buy link on your Lemon Squeezy product page. */
-  checkoutUrl: 'https://YOUR_STORE.lemonsqueezy.com/checkout/buy/YOUR_VARIANT_ID',
-
-  /** Lemon Squeezy's license API base. Same for test and live mode. */
-  apiBase: 'https://api.lemonsqueezy.com',
-
-  /** Shown on the upgrade modal. */
+export const GUMROAD_CONFIG = {
+  checkoutUrl: 'https://bloompress8.gumroad.com/l/lpjvld?wanted=true',
+  apiBase: 'https://api.gumroad.com',
+  productPermalink: 'lpjvld',
   priceDisplay: '$4.99',
   productName: 'PickAStudent Premium',
 };
@@ -47,11 +26,8 @@ const CHANGE_EVENT = 'pickastudent:license-changed';
 
 export interface StoredLicense {
   key: string;
-  instanceId: string;
-  instanceName: string;
   activatedAt: number;
-  activationLimit?: number;
-  activationUsage?: number;
+  uses?: number;
 }
 
 export function loadLicense(): StoredLicense | null {
@@ -97,40 +73,39 @@ export function subscribeLicenseChanges(handler: () => void): () => void {
 
 export type ActivationResult =
   | { ok: true; license: StoredLicense }
-  | { ok: false; reason: 'limit-reached' | 'invalid-key' | 'network' | 'unknown'; message: string };
+  | { ok: false; reason: 'invalid-key' | 'network' | 'unknown'; message: string };
 
-export async function activateLicense(rawKey: string, instanceName: string): Promise<ActivationResult> {
+export async function activateLicense(rawKey: string): Promise<ActivationResult> {
   const key = rawKey.trim();
   if (!key) return { ok: false, reason: 'invalid-key', message: 'License key is empty.' };
 
   try {
-    const res = await fetch(`${LEMON_SQUEEZY_CONFIG.apiBase}/v1/licenses/activate`, {
+    const body = new URLSearchParams({
+      product_id: GUMROAD_CONFIG.productPermalink,
+      license_key: key,
+      increment_uses_count: 'true',
+    });
+    const res = await fetch(`${GUMROAD_CONFIG.apiBase}/v2/licenses/verify`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-      body: JSON.stringify({ license_key: key, instance_name: instanceName }),
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: body.toString(),
     });
     const data = await res.json();
 
-    if (data.activated && data.instance?.id) {
+    if (data.success) {
       const license: StoredLicense = {
         key,
-        instanceId: String(data.instance.id),
-        instanceName: data.instance.name ?? instanceName,
         activatedAt: Date.now(),
-        activationLimit: data.license_key?.activation_limit,
-        activationUsage: data.license_key?.activation_usage,
+        uses: data.uses,
       };
       saveLicense(license);
       return { ok: true, license };
     }
 
-    const errorMsg: string = data.error ?? 'Activation failed';
+    const errorMsg: string = data.message ?? 'Activation failed';
     const lower = errorMsg.toLowerCase();
-    if (lower.includes('activation limit') || lower.includes('reached')) {
-      return { ok: false, reason: 'limit-reached', message: errorMsg };
-    }
-    if (lower.includes('not found') || lower.includes('invalid') || lower.includes('not exist')) {
-      return { ok: false, reason: 'invalid-key', message: errorMsg };
+    if (lower.includes('does not exist') || lower.includes('invalid') || lower.includes('not found')) {
+      return { ok: false, reason: 'invalid-key', message: 'License key not found. Check the email from Gumroad and try again.' };
     }
     return { ok: false, reason: 'unknown', message: errorMsg };
   } catch {
@@ -142,67 +117,26 @@ export async function activateLicense(rawKey: string, instanceName: string): Pro
   }
 }
 
-export async function deactivateLicense(license: StoredLicense): Promise<{ ok: boolean; message?: string }> {
-  try {
-    const res = await fetch(`${LEMON_SQUEEZY_CONFIG.apiBase}/v1/licenses/deactivate`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-      body: JSON.stringify({ license_key: license.key, instance_id: license.instanceId }),
-    });
-    const data = await res.json();
-    if (data.deactivated) {
-      clearLicense();
-      return { ok: true };
-    }
-    // Server didn't accept the deactivation — keep the local license intact.
-    return { ok: false, message: data.error ?? 'Deactivation failed' };
-  } catch {
-    return { ok: false, message: 'Could not reach the licensing server.' };
-  }
-}
-
-/** Suggest a friendly device label from the user agent. The user can override. */
-export function suggestInstanceName(): string {
-  const ua = typeof navigator !== 'undefined' ? navigator.userAgent : '';
-  let browser = 'Browser';
-  if (/Edg\//.test(ua)) browser = 'Edge';
-  else if (/Chrome\//.test(ua) && !/Edg\//.test(ua)) browser = 'Chrome';
-  else if (/Firefox\//.test(ua)) browser = 'Firefox';
-  else if (/Safari\//.test(ua) && !/Chrome\//.test(ua)) browser = 'Safari';
-
-  let platform = 'Device';
-  if (/iPhone/.test(ua)) platform = 'iPhone';
-  else if (/iPad/.test(ua)) platform = 'iPad';
-  else if (/Android/.test(ua)) platform = 'Android';
-  else if (/Mac OS X/.test(ua)) platform = 'Mac';
-  else if (/Windows/.test(ua)) platform = 'Windows';
-  else if (/Linux/.test(ua)) platform = 'Linux';
-
-  return `${platform} — ${browser}`;
+/** Deactivating on Gumroad just clears the local license — there's no server-side instance to remove. */
+export async function deactivateLicense(_license: StoredLicense): Promise<{ ok: boolean; message?: string }> {
+  clearLicense();
+  return { ok: true };
 }
 
 export function maskKey(key: string): string {
-  // Show only the last block for verification, mask the rest.
-  // Lemon Squeezy keys are typically 5 groups separated by dashes.
   const parts = key.split('-');
   if (parts.length < 2) return key.replace(/.(?=.{4})/g, '•');
   return parts.map((p, i) => (i === parts.length - 1 ? p : '•'.repeat(p.length))).join('-');
 }
 
-// ─── Dev helper ─────────────────────────────────────────────────────────────
+// ─── Dev helpers ─────────────────────────────────────────────────────────────
 // In the browser console you can run:
-//   __pasUnlockForDev()      -> grants premium locally (no real activation)
-//   __pasLockForDev()        -> clears the local license
-// Useful for testing the gated paths before a real Lemon Squeezy product exists.
+//   __pasUnlockForDev()   → grants premium locally (no real activation)
+//   __pasLockForDev()     → clears the local license
 
 if (typeof window !== 'undefined') {
   (window as unknown as { __pasUnlockForDev?: () => void }).__pasUnlockForDev = () => {
-    saveLicense({
-      key: 'DEV-DEV-DEV-DEV-DEV',
-      instanceId: 'dev-instance',
-      instanceName: 'Local dev override',
-      activatedAt: Date.now(),
-    });
+    saveLicense({ key: 'DEV-DEV-DEV-DEV-DEV', activatedAt: Date.now() });
     console.info('PickAStudent: premium unlocked locally (dev mode).');
   };
   (window as unknown as { __pasLockForDev?: () => void }).__pasLockForDev = () => {

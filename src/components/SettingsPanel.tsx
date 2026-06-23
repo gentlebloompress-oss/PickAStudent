@@ -76,7 +76,7 @@ function PremiumSection({ isPremium, license, onUpgrade, onDeactivate }: {
   const [error, setError] = useState<string | null>(null);
 
   async function handleDeactivate() {
-    if (!confirm('Deactivate premium on this device? This frees an activation slot. You can re-activate later with your key.')) return;
+    if (!confirm('Remove your license from this device? You can re-activate any time with your key.')) return;
     setWorking(true);
     setError(null);
     const res = await onDeactivate();
@@ -101,12 +101,11 @@ function PremiumSection({ isPremium, license, onUpgrade, onDeactivate }: {
         <>
           <div className="text-xs opacity-70 flex flex-col gap-0.5">
             <div>Unlimited classes + backup &amp; sync unlocked.</div>
-            <div>Device: <span className="font-medium">{license.instanceName}</span></div>
             <div>Key: <span className="font-mono">{maskKey(license.key)}</span></div>
           </div>
           {error && <div className="text-xs text-rose-600 dark:text-rose-300">{error}</div>}
           <button onClick={handleDeactivate} disabled={working} className="btn-soft text-xs self-start mt-1">
-            {working ? 'Deactivating…' : 'Deactivate this device'}
+            {working ? 'Removing…' : 'Remove license from this device'}
           </button>
         </>
       ) : (

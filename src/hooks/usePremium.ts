@@ -4,7 +4,6 @@ import {
   deactivateLicense,
   loadLicense,
   subscribeLicenseChanges,
-  suggestInstanceName,
   type ActivationResult,
   type StoredLicense,
 } from '../lib/premium';
@@ -21,9 +20,8 @@ export function usePremium() {
   useEffect(() => subscribeLicenseChanges(() => setLicense(loadLicense())), []);
 
   const activate = useCallback(
-    async (key: string, instanceName?: string): Promise<ActivationResult> => {
-      const name = instanceName?.trim() || suggestInstanceName();
-      return activateLicense(key, name);
+    async (key: string): Promise<ActivationResult> => {
+      return activateLicense(key);
     },
     []
   );
