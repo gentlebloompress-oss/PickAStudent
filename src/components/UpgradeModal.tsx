@@ -75,7 +75,6 @@ export function UpgradeModal({ open, reason, onClose }: Props) {
             <Feature>Fairness heat map for every class, not just one</Feature>
             <Feature>Backup &amp; sync — save your classes to a file, load on any device</Feature>
             <Feature>One-time payment, lifetime use (no subscription)</Feature>
-            <Feature>Use on all your devices with your license key</Feature>
           </ul>
 
           <div className="flex flex-col sm:flex-row gap-2 mt-1">
