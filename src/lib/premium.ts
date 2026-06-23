@@ -8,7 +8,7 @@
 export const GUMROAD_CONFIG = {
   checkoutUrl: 'https://bloompress8.gumroad.com/l/lpjvld?wanted=true',
   apiBase: 'https://api.gumroad.com',
-  productPermalink: 'lpjvld',
+  productId: 'IT6tQPEC-WTeqvblljpr3A==',
   priceDisplay: '$4.99',
   productName: 'PickAStudent Premium',
 };
@@ -81,7 +81,7 @@ export async function activateLicense(rawKey: string): Promise<ActivationResult>
 
   try {
     const body = new URLSearchParams({
-      product_id: GUMROAD_CONFIG.productPermalink,
+      product_id: GUMROAD_CONFIG.productId,
       license_key: key,
       increment_uses_count: 'true',
     });
